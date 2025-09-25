@@ -1,3 +1,5 @@
+# File: src/ui/main_window.py
+
 from PyQt6.QtWidgets import (
     QMainWindow, QMenuBar, QWidget, QVBoxLayout,
     QHBoxLayout, QPushButton, QLabel, QProgressBar, QSizePolicy,
@@ -45,7 +47,7 @@ class MainWindow(QMainWindow):
 
         # Connect File menu actions
         add_files_action.triggered.connect(self.add_files)
-        add_folder_action.triggered.connect(self.add_folder)
+        add_folder_action.triggered.connect(self.add_folder)  # This will call the updated method
         exit_action.triggered.connect(self.close)
 
         # Edit menu
@@ -170,6 +172,7 @@ class MainWindow(QMainWindow):
         signals.progress_updated.connect(self._update_progress)
         signals.status_updated.connect(self._safe_update_status)
         signals.compression_complete.connect(self._safe_update_status)
+        signals.compression_result_updated.connect(self._update_compression_result)  # New signal connection
 
     def closeEvent(self, event):
         """Save main window position and size when closing"""
@@ -306,7 +309,7 @@ class MainWindow(QMainWindow):
 
     def add_folder(self):
         folder_path = QFileDialog.getExistingDirectory(
-            self, "Add Folder", "", QFileDialog.Directory
+            self, "Add Folder", "", QFileDialog.Option.ShowDirsOnly
         )
         if folder_path:
             added_count = 0
@@ -514,10 +517,15 @@ class MainWindow(QMainWindow):
                 if success:
                     # Update compressed size in UI
                     try:
-                        original_size = float(self.file_list_widget.item(index, 3).text().split()[0])
+                        original_size_text = self.file_list_widget.item(index, 3).text()
+                        original_size_mb = self._convert_to_mb(original_size_text)
                         compressed_size = get_file_size(file_path)
-                        compressed_size_value = float(compressed_size.split()[0])
-                        compression_saving = ((original_size - compressed_size_value) / original_size) * 100
+                        compressed_size_mb = self._convert_to_mb(compressed_size)
+
+                        compression_saving = ((original_size_mb - compressed_size_mb) / original_size_mb) * 100
+
+                        # Emit signal to update UI with compressed size and savings percentage
+                        signals.compression_result_updated.emit(index, compressed_size, compression_saving)
 
                     except Exception as e:
                         print(f"Error updating UI for compressed file: {e}")
@@ -544,6 +552,46 @@ class MainWindow(QMainWindow):
 
         signals.compression_complete.emit(success_message + performance_message)
         self.progress_bar.setValue(100)
+
+    def _convert_to_mb(self, size_str):
+        """Convert size string to MB for consistent comparison"""
+        try:
+            if not size_str or size_str == "N/A":
+                return 0
+
+            # Extract numeric value and unit
+            parts = size_str.split()
+            value = float(parts[0])
+
+            # Convert to MB based on unit
+            if 'KB' in size_str:
+                return value / 1024
+            elif 'MB' in size_str:
+                return value
+            elif 'GB' in size_str:
+                return value * 1024
+            else:  # Default to bytes
+                return value / (1024 * 1024)
+        except Exception as e:
+            print(f"Error converting size: {e}")
+            return 0
+
+    def _update_compression_result(self, index, compressed_size, saving_percentage):
+        """Update the UI with compression results"""
+        if 0 <= index < self.file_list_widget.rowCount():
+            # Update "Compressed" column
+            compressed_item = QTableWidgetItem(f"{compressed_size}")
+            compressed_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            self.file_list_widget.setItem(index, 4, compressed_item)
+
+            # Update "Saved" column with savings percentage (ensure it's non-negative)
+            saved_percentage = max(0.0, saving_percentage)  # Ensure non-negative
+            saved_item = QTableWidgetItem(f"{saved_percentage:.2f}%")
+            saved_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            self.file_list_widget.setItem(index, 5, saved_item)
+
+            # Ensure UI updates happen in the main thread
+            QApplication.processEvents()
 
     def remove_selected_files(self):
         """Remove selected files from the file list"""
@@ -580,10 +628,10 @@ class MainWindow(QMainWindow):
         """Show About Mountaineer dialog"""
         about_text = """
 <center><h1>Mountaineer</h1>
-A powerful image compression tool for photographers and designers.<br/>
+A powerful image compression tool for<br>/photographers and designers.<br/>
 <p><b>Version:</b> 1.0<br/>
 <b>Author:</b> Chris Rexinger<br/>
-<a href="https://github.com/aries223/mountaineer">GitHub Repository</a></p></center>
+<a href="https://github.com/aries223/mountaineer">GitHub</a></p></center>
 """
         from PyQt6.QtWidgets import QMessageBox
         QMessageBox.about(self, "About Mountaineer", about_text)
