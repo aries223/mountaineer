@@ -26,22 +26,54 @@ class MainWindow(QMainWindow):
 
         # Set initial window size and position based on saved preferences or defaults
         self.resize(window_settings['width'], window_settings['height'])
+        if window_settings['x'] is not None and window_settings['y'] is not None:
+            self.move(window_settings['x'], window_settings['y'])
 
-        # Only set position if we have valid coordinates (non-None)
-        x = window_settings.get('x')
-        y = window_settings.get('y')
+        # Initialize other components
+        self.current_preferences = self.preferences.load_preferences()
+        self.file_list = []
 
-        if x is not None and y is not None:
-            print(f"Setting main window position to saved coordinates: x={x}, y={y}")
-            self.move(x, y)
-
-            # Initialize other components
-            self.current_preferences = self.preferences.load_preferences()
-            self.file_list = []
-
-        # Create menu bar
+        # Create the menu bar
         self.menu_bar = QMenuBar(self)
         self.setMenuBar(self.menu_bar)
+
+        # File menu
+        file_menu = self.menu_bar.addMenu("File")
+        add_files_action = file_menu.addAction("Add Files...")
+        add_folder_action = file_menu.addAction("Add Folder...")
+        exit_action = file_menu.addAction("Exit")
+
+        # Connect File menu actions
+        add_files_action.triggered.connect(self.add_files)
+        add_folder_action.triggered.connect(self.add_folder)
+        exit_action.triggered.connect(self.close)
+
+        # Edit menu
+        edit_menu = self.menu_bar.addMenu("Edit")
+        remove_action = edit_menu.addAction("Remove")
+        clear_action = edit_menu.addAction("Clear")
+        select_all_action = edit_menu.addAction("Select All")
+        preferences_action = edit_menu.addAction("Preferences...")
+
+        # Connect Edit menu actions
+        remove_action.triggered.connect(self.remove_selected_files)
+        clear_action.triggered.connect(self.clear_file_list)
+        select_all_action.triggered.connect(self.select_all_files)
+        preferences_action.triggered.connect(self.show_preferences)
+
+        # View menu
+        view_menu = self.menu_bar.addMenu("View")
+        statusbar_action = view_menu.addAction("Toggle Status Bar")
+
+        # Connect View menu actions
+        statusbar_action.triggered.connect(self.toggle_status_bar)
+
+        # Help menu
+        help_menu = self.menu_bar.addMenu("Help")
+        about_action = help_menu.addAction("About Mountaineer")
+
+        # Connect Help menu actions
+        about_action.triggered.connect(self.show_about_dialog)
 
         # Create button bar
         self.button_bar = QWidget()
@@ -106,6 +138,7 @@ class MainWindow(QMainWindow):
         status_bar_layout = QHBoxLayout()
 
         self.status_label = QLabel("Ready", self)
+        self.status_bar_visible = True
 
         # Progress bar - make it 50% of main window width and set maximum height
         self.progress_bar = QProgressBar(self)
@@ -115,15 +148,19 @@ class MainWindow(QMainWindow):
         status_bar_layout.addWidget(self.status_label, 50)  # Status takes 50%
         status_bar_layout.addWidget(self.progress_bar, 50)  # Progress bar takes 50%
 
+        self.status_bar_widget = status_bar_widget
         status_bar_widget.setLayout(status_bar_layout)
 
         # Main layout
         main_layout = QVBoxLayout()
+        main_layout.addWidget(self.menu_bar)
         main_layout.addWidget(self.button_bar)
         main_layout.addWidget(self.file_list_widget, 1)  # File list takes full width
         main_layout.addWidget(self.info_widget)
         main_layout.addWidget(self.control_widget)
-        main_layout.addWidget(status_bar_widget)
+
+        if self.status_bar_visible:
+            main_layout.addWidget(status_bar_widget)
 
         container = QWidget()
         container.setLayout(main_layout)
@@ -267,6 +304,29 @@ class MainWindow(QMainWindow):
 
                 self.status_label.setText(message)
 
+    def add_folder(self):
+        folder_path = QFileDialog.getExistingDirectory(
+            self, "Add Folder", "", QFileDialog.Directory
+        )
+        if folder_path:
+            added_count = 0
+            skipped_count = 0
+
+            for file_name in os.listdir(folder_path):
+                file_path = os.path.join(folder_path, file_name)
+                if os.path.isfile(file_path) and self._is_supported_image(file_path):
+                    success, is_skipped = self._try_add_file_to_list(file_path)
+                    if success:
+                        added_count += 1
+                    else:
+                        skipped_count += is_skipped
+
+            message = f"Added {added_count} files from folder to the list"
+            if skipped_count > 0:
+                message += f", {skipped_count} incompatible files skipped"
+
+            self.status_label.setText(message)
+
     def add_file_to_list(self, file_path):
         """Actual implementation of adding a valid file to the list"""
         print(f"Adding file to list: {file_path}")
@@ -356,7 +416,7 @@ class MainWindow(QMainWindow):
         except Exception as e:
             print(f"Error updating info widget: {e}")
             import traceback
-            traceback.print_exc()
+            trackback.print_exc()
             self.info_widget.setText("Error calculating file count")
 
     def show_preferences(self):
@@ -484,6 +544,49 @@ class MainWindow(QMainWindow):
 
         signals.compression_complete.emit(success_message + performance_message)
         self.progress_bar.setValue(100)
+
+    def remove_selected_files(self):
+        """Remove selected files from the file list"""
+        # Get all selected rows
+        selected_items = self.file_list_widget.selectedItems()
+        if not selected_items:
+            return  # No selection, do nothing
+
+        # Remove selected items in reverse order (to maintain proper indexing)
+        for item in sorted(selected_items, key=lambda x: x.row(), reverse=True):
+            row = item.row()
+            removed_file = self.file_list.pop(row)
+
+            print(f"Removed file: {removed_file}")
+            self.file_list_widget.removeRow(row)
+
+        # Update info widget
+        self.update_info_widget()
+
+    def select_all_files(self):
+        """Select all files in the file list"""
+        for row in range(self.file_list_widget.rowCount()):
+            item = self.file_list_widget.item(row, 0)  # Get first column item (File Name)
+            if item:
+                item.setSelected(True)
+
+    def toggle_status_bar(self):
+        """Toggle visibility of the status bar"""
+        self.status_bar_visible = not self.status_bar_visible
+        self.status_label.setVisible(self.status_bar_visible)
+        self.progress_bar.setVisible(self.status_bar_visible)
+
+    def show_about_dialog(self):
+        """Show About Mountaineer dialog"""
+        about_text = """
+<center><h1>Mountaineer</h1>
+A powerful image compression tool for photographers and designers.<br/>
+<p><b>Version:</b> 1.0<br/>
+<b>Author:</b> Chris Rexinger<br/>
+<a href="https://github.com/aries223/mountaineer">GitHub Repository</a></p></center>
+"""
+        from PyQt6.QtWidgets import QMessageBox
+        QMessageBox.about(self, "About Mountaineer", about_text)
 
     def show_context_menu(self, position):
         """Show context menu for file removal"""
