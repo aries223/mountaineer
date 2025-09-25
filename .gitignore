@@ -1,0 +1,62 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+download-cache/
+eggs/
+install.log
+install.log.saved
+lib/
+lib64/
+parts/
+sdist/
+
+# PyInstaller
+#  Usually these files are written by a separate process from your Python code.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nose/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.coveralls.*
+
+# Translations
+*.mo
+*.pot
+
+# PyBuilder
+_pybuilder_
+pyproject.lock
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Virtualenv
+venv/
+env/
+.venv/
+ENV/
+
+# PyCharm
+.idea/
+*.iml
+
+# Vscode
+.vscode/
