@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt  # Add QSize import
 from PyQt6.QtWidgets import QApplication  # Import QApplication for processEvents
+from PyQt6.QtGui import QFontMetrics  # Import QFontMetrics
 from compression.jpeg_compressor import JpegCompressor
 from compression.png_compressor import PngCompressor
 from utils.preferences import Preferences
@@ -77,10 +78,11 @@ class MainWindow(QMainWindow):
         # Connect Help menu actions
         about_action.triggered.connect(self.show_about_dialog)
 
-        # Create button bar
+        # Create button bar with left alignment and adjusted widths
         self.button_bar = QWidget()
         self.button_bar_layout = QHBoxLayout()
         self.button_bar.setLayout(self.button_bar_layout)
+        self.button_bar_layout.setContentsMargins(0, 0, 0, 0)  # Remove default margins
 
         add_files_button = QPushButton("Add Files")
         clear_list_button = QPushButton("Clear File List")
@@ -90,9 +92,17 @@ class MainWindow(QMainWindow):
         clear_list_button.clicked.connect(self.clear_file_list)
         preferences_button.clicked.connect(self.show_preferences)
 
-        self.button_bar_layout.addWidget(add_files_button)
-        self.button_bar_layout.addWidget(clear_list_button)
-        self.button_bar_layout.addWidget(preferences_button)
+        # Set button width based on text width with padding
+        self._set_button_width_with_padding(add_files_button, 40)  # 40 pixels padding
+        self._set_button_width_with_padding(clear_list_button, 40)
+        self._set_button_width_with_padding(preferences_button, 40)
+
+        # Add buttons to layout (left aligned with no stretching)
+        self.button_bar_layout.addWidget(add_files_button, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.button_bar_layout.addSpacing(8)  # Fixed spacing between buttons
+        self.button_bar_layout.addWidget(clear_list_button, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.button_bar_layout.addStretch()  # Add stretch to push button right
+        self.button_bar_layout.addWidget(preferences_button, alignment=Qt.AlignmentFlag.AlignLeft)
 
         # File list widget (as table) with drag-and-drop support
         self.file_list_widget = QTableWidget()
@@ -121,18 +131,24 @@ class MainWindow(QMainWindow):
         self.info_widget = QLabel("0 files")
         self.info_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
 
-        # Control widget
+        # Control widget with left alignment
         self.control_widget = QWidget()
         control_layout = QHBoxLayout()
+        control_layout.setContentsMargins(0, 0, 0, 0)  # Remove default margins
 
         compress_button = QPushButton("Compress Images")
-        quit_button = QPushButton("Quit")
+        quit_button = QPushButton("Exit")
 
         compress_button.clicked.connect(self.compress_images)
         quit_button.clicked.connect(self.close)
 
-        control_layout.addWidget(compress_button)
-        control_layout.addWidget(quit_button)
+        # Set button width based on text width with padding
+        self._set_button_width_with_padding(compress_button, 40)
+        self._set_button_width_with_padding(quit_button, 40)
+
+        control_layout.addWidget(compress_button, alignment=Qt.AlignmentFlag.AlignLeft)  # Left aligned
+        control_layout.addStretch()  # Add stretch to push button to right
+        control_layout.addWidget(quit_button, alignment=Qt.AlignmentFlag.AlignRight)
         self.control_widget.setLayout(control_layout)
 
         # Status bar
@@ -142,13 +158,13 @@ class MainWindow(QMainWindow):
         self.status_label = QLabel("Ready", self)
         self.status_bar_visible = True
 
-        # Progress bar - make it 50% of main window width and set maximum height
+        # Progress bar - make it 40% of main window width and set maximum height
         self.progress_bar = QProgressBar(self)
         self.progress_bar.setRange(0, 100)
-        self.progress_bar.setMaximumHeight(int(self.height() * 0.02))  # Set to 2% of window height
+        self.progress_bar.setMaximumHeight(int(self.height() * 0.018))  # Set to .018% of window height
 
-        status_bar_layout.addWidget(self.status_label, 50)  # Status takes 50%
-        status_bar_layout.addWidget(self.progress_bar, 50)  # Progress bar takes 50%
+        status_bar_layout.addWidget(self.status_label, 60)  # Status takes 60%
+        status_bar_layout.addWidget(self.progress_bar, 40)  # Progress bar takes 40%
 
         self.status_bar_widget = status_bar_widget
         status_bar_widget.setLayout(status_bar_layout)
@@ -156,10 +172,10 @@ class MainWindow(QMainWindow):
         # Main layout
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.menu_bar)
-        main_layout.addWidget(self.button_bar)
-        main_layout.addWidget(self.file_list_widget, 1)  # File list takes full width
+        main_layout.addWidget(self.button_bar)  # Button bar takes full width
+        main_layout.addWidget(self.file_list_widget, stretch=1)  # File list takes full width and stretches
         main_layout.addWidget(self.info_widget)
-        main_layout.addWidget(self.control_widget)
+        main_layout.addWidget(self.control_widget)  # Control widget takes full width
 
         if self.status_bar_visible:
             main_layout.addWidget(status_bar_widget)
@@ -173,6 +189,16 @@ class MainWindow(QMainWindow):
         signals.status_updated.connect(self._safe_update_status)
         signals.compression_complete.connect(self._safe_update_status)
         signals.compression_result_updated.connect(self._update_compression_result)  # New signal connection
+
+    def _set_button_width_with_padding(self, button, padding):
+        """Set button width based on text width with additional padding"""
+        font_metrics = QFontMetrics(QApplication.font())
+        text_width = font_metrics.horizontalAdvance(button.text())
+        total_width = text_width + padding
+        print(f"Setting {button.text()} button width to {total_width} pixels (text: {text_width}, padding: {padding})")
+        button.setMinimumWidth(total_width)
+        button.setMaximumWidth(total_width)  # Also set maximum width to prevent expansion
+        button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 
     def closeEvent(self, event):
         """Save main window position and size when closing"""
@@ -548,7 +574,7 @@ class MainWindow(QMainWindow):
         average_speed = completed_files / elapsed_time if elapsed_time > 0 else 0
 
         success_message = f"All images compressed successfully. " if completed_files == total_files else "Some files failed to compress. "
-        performance_message = f"Compressed in {elapsed_time:.2f} seconds (avg: {average_speed:.2f} files/sec)"
+        performance_message = f"{elapsed_time:.2f} seconds (avg: {average_speed:.2f} files/sec)"
 
         signals.compression_complete.emit(success_message + performance_message)
         self.progress_bar.setValue(100)
@@ -628,10 +654,10 @@ class MainWindow(QMainWindow):
         """Show About Mountaineer dialog"""
         about_text = """
 <center><h1>Mountaineer</h1>
-A powerful image compression tool for<br>/photographers and designers.<br/>
+A powerful image compression tool for <br/>photographers and designers.
 <p><b>Version:</b> 1.0<br/>
-<b>Author:</b> Chris Rexinger<br/>
-<a href="https://github.com/aries223/mountaineer">GitHub</a></p></center>
+<a href="https://github.com/aries223/mountaineer">GitHub</a></p><br/>
+©Chris Rexinger 2025<br/></center>
 """
         from PyQt6.QtWidgets import QMessageBox
         QMessageBox.about(self, "About Mountaineer", about_text)
