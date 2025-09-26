@@ -78,29 +78,31 @@ class MainWindow(QMainWindow):
         # Connect Help menu actions
         about_action.triggered.connect(self.show_about_dialog)  # Updated to use separate method
 
-        # Create button bar with improved layout
+        # Create button bar with left alignment and adjusted widths
         self.button_bar = QWidget()
         self.button_bar_layout = QHBoxLayout()
         self.button_bar.setLayout(self.button_bar_layout)
+        self.button_bar_layout.setContentsMargins(0, 0, 0, 0)  # Remove default margins
 
         add_files_button = QPushButton("Add Files")
         clear_list_button = QPushButton("Clear File List")
         preferences_button = QPushButton("Preferences")
 
-        # Set consistent button styles
-        for button in [add_files_button, clear_list_button, preferences_button]:
-            self._set_button_style(button)
-
         add_files_button.clicked.connect(self.add_files)
         clear_list_button.clicked.connect(self.clear_file_list)
         preferences_button.clicked.connect(self.show_preferences)
 
-        # Add buttons with proper spacing
-        self.button_bar_layout.addWidget(add_files_button)
-        self.button_bar_layout.addSpacing(10)  # Consistent spacing between buttons
-        self.button_bar_layout.addWidget(clear_list_button)
-        self.button_bar_layout.addStretch()  # Push remaining button to the right
-        self.button_bar_layout.addWidget(preferences_button)
+        # Set button width based on text width with padding
+        self._set_button_width_with_padding(add_files_button, 40)  # 40 pixels padding
+        self._set_button_width_with_padding(clear_list_button, 40)
+        self._set_button_width_with_padding(preferences_button, 40)
+
+        # Add buttons to layout (left aligned with no stretching)
+        self.button_bar_layout.addWidget(add_files_button, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.button_bar_layout.addSpacing(8)  # Fixed spacing between buttons
+        self.button_bar_layout.addWidget(clear_list_button, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.button_bar_layout.addStretch()  # Add stretch at the end to push buttons to right
+        self.button_bar_layout.addWidget(preferences_button, alignment=Qt.AlignmentFlag.AlignLeft)
 
         # File list widget (as table) with drag-and-drop support
         self.file_list_widget = QTableWidget()
@@ -137,6 +139,9 @@ class MainWindow(QMainWindow):
         compress_button = QPushButton("Compress Images")
         quit_button = QPushButton("Quit")
 
+        compress_button.clicked.connect(self.compress_images)
+        quit_button.clicked.connect(self.close)
+
         # Set button width based on text width with padding
         self._set_button_style(compress_button)
         self._set_button_style(quit_button)
@@ -145,9 +150,6 @@ class MainWindow(QMainWindow):
         control_layout.addStretch()  # Add stretch at the end to push buttons to right
         control_layout.addWidget(quit_button, alignment=Qt.AlignmentFlag.AlignLeft)
         self.control_widget.setLayout(control_layout)
-
-        compress_button.clicked.connect(self.compress_images)
-        quit_button.clicked.connect(self.close)
 
         # Status bar
         status_bar_widget = QWidget()
@@ -196,6 +198,14 @@ class MainWindow(QMainWindow):
         button.setMinimumWidth(total_width)
         button.setMaximumWidth(total_width)
 
+    def _set_button_width_with_padding(self, button, padding):
+        """Set button width based on text width with additional padding"""
+        font_metrics = QFontMetrics(QApplication.font())
+        text_width = font_metrics.horizontalAdvance(button.text())
+        total_width = max(text_width + padding * 2, 120)  # Add padding on both sides and minimum width of 120 pixels
+        button.setMinimumWidth(total_width)
+        button.setMaximumWidth(total_width)
+
     def update_status_bar_layout(self):
         """Ensure proper status bar alignment"""
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
@@ -213,19 +223,22 @@ class MainWindow(QMainWindow):
         super().closeEvent(event)
 
     def dragEnterEvent(self, event):
+        """Handle drag enter events"""
         if event.mimeData().hasUrls():
-            # Accept files and directories
             urls = [url.toLocalFile() for url in event.mimeData().urls()]
+            # Accept files and directories
             accepted = any(
                 os.path.isfile(url) or
                 (os.path.isdir(url) and any(os.path.isfile(os.path.join(url, f)) for f in os.listdir(url)))
-            )  # Fixed indentation here
+                for url in urls
+            )
             if accepted:
                 event.acceptProposedAction()
         else:
             event.ignore()
 
     def dropEvent(self, event):
+        """Handle drop events"""
         if not event.mimeData().hasUrls():
             event.ignore()
             return
@@ -319,7 +332,7 @@ class MainWindow(QMainWindow):
         )
         if files:
             added_count = 0
-            skipped_count = 0  # Use skipped_count instead of skipped_files
+            skipped_count = 0  # Use consistent variable name
 
             for file_path in files:
                 success, is_skipped = self._try_add_file_to_list(file_path)
@@ -329,7 +342,7 @@ class MainWindow(QMainWindow):
                     skipped_count += is_skipped
 
             message = f"Added {added_count} files to the list"
-            if skipped_count > 0:  # Use skipped_count instead of skipped_files
+            if skipped_count > 0:  # Use consistent variable name
                 message += f", {skipped_count} incompatible files skipped"
 
             self.status_label.setText(message)
@@ -344,27 +357,15 @@ class MainWindow(QMainWindow):
 
             for file_name in os.listdir(folder_path):
                 file_path = os.path.join(folder_path, file_name)
-                if os.path.isfile(file_path):
-                    try:
-                        format_str = get_file_format(file_path)
-                        supported_formats = ["JPEG", "PNG"]
-                        if format_str not in supported_formats:
-                            print(f"Unsupported format: {format_str} for file: {file_path}")
-                            skipped_count += 1
-                            continue
+                if os.path.isfile(file_path) and self._is_supported_image(file_path):
+                    success, is_skipped = self._try_add_file_to_list(file_path)
+                    if success:
+                        added_count += 1
+                    else:
+                        skipped_count += is_skipped
 
-                        # Only add to list if it's a supported format
-                        success = self.add_file_to_list(file_path)
-                        if success:
-                            added_count += 1
-                    except Exception as e:
-                        print(f"Error processing file {file_path}: {e}")
-                        skipped_count += 1
-                        continue
-
-            # Show proper status message with consistent variable names
             message = f"Added {added_count} files from folder to the list"
-            if skipped_count > 0:
+            if skipped_count > 0:  # Use consistent variable name
                 message += f", {skipped_count} incompatible files skipped"
 
             self.status_label.setText(message)
@@ -458,7 +459,7 @@ class MainWindow(QMainWindow):
         except Exception as e:
             print(f"Error updating info widget: {e}")
             import traceback
-            trackback.print_exc()
+            traceback.print_exc()
             self.info_widget.setText("Error calculating file count")
 
     def show_preferences(self):

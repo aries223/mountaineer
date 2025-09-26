@@ -43,7 +43,7 @@ A powerful image compression tool for photographers and designers.<br/>
 <p><b>Version:</b> 1.0<br/></p>
 <p>©Chris Rexinger 2025</p>
 <br/>
-<a href="https://github.com/aries223/mountaineer">GitHub</a></p></center>
+<p><a href="https://github.com/aries223/mountaineer">GitHub</a></p></center>
 """
 
         text_label = QLabel(about_text)
