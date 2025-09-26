@@ -76,7 +76,7 @@ class MainWindow(QMainWindow):
         about_action = help_menu.addAction("About Mountaineer")
 
         # Connect Help menu actions
-        about_action.triggered.connect(self.show_about_dialog)
+        about_action.triggered.connect(self.show_about_dialog)  # Updated to use separate method
 
         # Create button bar with left alignment and adjusted widths
         self.button_bar = QWidget()
@@ -101,8 +101,11 @@ class MainWindow(QMainWindow):
         self.button_bar_layout.addWidget(add_files_button, alignment=Qt.AlignmentFlag.AlignLeft)
         self.button_bar_layout.addSpacing(8)  # Fixed spacing between buttons
         self.button_bar_layout.addWidget(clear_list_button, alignment=Qt.AlignmentFlag.AlignLeft)
-        self.button_bar_layout.addStretch()  # Add stretch to push button right
+        self.button_bar_layout.addStretch()  # Add stretch at the end to push buttons to right
         self.button_bar_layout.addWidget(preferences_button, alignment=Qt.AlignmentFlag.AlignLeft)
+
+        # Add stretch at the end to push buttons to left without spreading
+        #self.button_bar_layout.addStretch()
 
         # File list widget (as table) with drag-and-drop support
         self.file_list_widget = QTableWidget()
@@ -137,7 +140,7 @@ class MainWindow(QMainWindow):
         control_layout.setContentsMargins(0, 0, 0, 0)  # Remove default margins
 
         compress_button = QPushButton("Compress Images")
-        quit_button = QPushButton("Exit")
+        quit_button = QPushButton("Quit")
 
         compress_button.clicked.connect(self.compress_images)
         quit_button.clicked.connect(self.close)
@@ -147,9 +150,12 @@ class MainWindow(QMainWindow):
         self._set_button_width_with_padding(quit_button, 40)
 
         control_layout.addWidget(compress_button, alignment=Qt.AlignmentFlag.AlignLeft)  # Left aligned
-        control_layout.addStretch()  # Add stretch to push button to right
-        control_layout.addWidget(quit_button, alignment=Qt.AlignmentFlag.AlignRight)
+        control_layout.addStretch()  # Add stretch at the end to push buttons to right
+        control_layout.addWidget(quit_button, alignment=Qt.AlignmentFlag.AlignLeft)
         self.control_widget.setLayout(control_layout)
+
+        # Add stretch at the end to push buttons to left without spreading
+        #control_layout.addStretch()
 
         # Status bar
         status_bar_widget = QWidget()
@@ -161,7 +167,7 @@ class MainWindow(QMainWindow):
         # Progress bar - make it 40% of main window width and set maximum height
         self.progress_bar = QProgressBar(self)
         self.progress_bar.setRange(0, 100)
-        self.progress_bar.setMaximumHeight(int(self.height() * 0.018))  # Set to .018% of window height
+        self.progress_bar.setMaximumHeight(int(self.height() * 0.015))  # Set to .015% of window height
 
         status_bar_layout.addWidget(self.status_label, 60)  # Status takes 60%
         status_bar_layout.addWidget(self.progress_bar, 40)  # Progress bar takes 40%
@@ -652,15 +658,9 @@ class MainWindow(QMainWindow):
 
     def show_about_dialog(self):
         """Show About Mountaineer dialog"""
-        about_text = """
-<center><h1>Mountaineer</h1>
-A powerful image compression tool for <br/>photographers and designers.
-<p><b>Version:</b> 1.0<br/>
-<a href="https://github.com/aries223/mountaineer">GitHub</a></p><br/>
-©Chris Rexinger 2025<br/></center>
-"""
-        from PyQt6.QtWidgets import QMessageBox
-        QMessageBox.about(self, "About Mountaineer", about_text)
+        from ui.about import AboutDialog  # Import the new About dialog class
+        about_dialog = AboutDialog()
+        about_dialog.exec()
 
     def show_context_menu(self, position):
         """Show context menu for file removal"""
