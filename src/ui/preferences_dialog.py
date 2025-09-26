@@ -1,3 +1,5 @@
+# File: src/ui/preferences_dialog.py
+
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QSlider, QCheckBox, QPushButton, QHBoxLayout
 from PyQt6.QtCore import Qt  # Import Qt for orientation setting
 from utils.preferences import Preferences
@@ -7,10 +9,10 @@ class PreferencesDialog(QDialog):
         super().__init__()
         self.setWindowTitle("Preferences")
 
-        # Initialize preferences
-        self.preferences = Preferences()
-
         layout = QVBoxLayout()
+
+        # Initialize preferences here
+        self.preferences = Preferences()
 
         # Initialize current_preferences dictionary
         self.current_preferences = {}
@@ -123,3 +125,12 @@ class PreferencesDialog(QDialog):
             self.height()
         )
         super().closeEvent(event)
+
+    def _set_slider_appearance(self):
+        """Set consistent appearance for sliders"""
+        self.jpeg_slider.setMinimumWidth(200)
+        self.png_slider.setMinimumWidth(200)
+
+        # Set page step to improve user experience
+        self.jpeg_slider.setPageStep(5)
+        self.png_slider.setPageStep(5)
