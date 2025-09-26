@@ -1,7 +1,6 @@
-# Mountaineer Image Compression Utility
+# Mountaineer
 
-## Purpose
-Mountaineer is a powerful desktop application designed to simplify image compression for photographers, designers, and anyone working with large collections of JPEG and PNG images. It provides an intuitive interface for batch compressing images while offering advanced customization options through its preferences system.
+Mountaineer is a powerful desktop application designed to simplify image compression for photographers, designers, and anyone working with large collections of JPEG and PNG images. It provides an intuitive interface for batch compressing images while offering compression customization options through its preferences system.
 
 ## Core Features
 
