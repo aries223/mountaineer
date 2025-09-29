@@ -1,5 +1,3 @@
-# File: src/ui/about.py
-
 from PyQt6.QtWidgets import QMessageBox, QDialog, QVBoxLayout, QLabel, QWidget
 from PyQt6.QtGui import QPixmap  # Import for handling images
 from PyQt6.QtCore import Qt  # Import Qt for alignment
