@@ -5,26 +5,27 @@ class PngCompressor(BaseCompressor):
         super().__init__()
 
     def compress_file(self, input_path, output_path=None, lossless=False,
-                     strip_metadata=False, png_quality=None):
-        if png_quality is None:
-            raise ValueError("png_quality must be provided")
+                     strip_metadata=False, png_quality=None, is_rgba=False):
+        cmd = ["oxipng"]
 
         if lossless:
-            # Lossless compression - just use oxipng with max optimization
-            cmd = ["oxipng", "--opt=6", input_path]
-            success = self.run_command(cmd)
-            return success
+            # Lossless (long time, not recommended)
+            cmd.extend(["-omax", "-Z", "--fast"])
         else:
-            # Non-lossless compression - use pngquant first
-            pngquant_cmd = ["pngquant", f"-Q{int(png_quality)}", "--ext", ".png", "--force"]
-            pngquant_cmd.append(input_path)
-            success = self.run_command(pngquant_cmd)
-            if not success:
-                return False
+            # Default normal compression
+            if png_quality is None:
+                raise ValueError("png_quality must be provided for non-lossless compression")
+            cmd.extend([f"-o{int(png_quality)}", "-f", "0-9"])
 
-        # If strip metadata is enabled, run oxipng with strip flag
         if strip_metadata:
-            cmd = ["oxipng", "--strip=all", input_path]
-            return self.run_command(cmd)
+            cmd.append("--strip=all")
 
-        return True  # Return success for non-strip case
+        if is_rgba:
+            cmd.append("-a")
+
+        if output_path and output_path != input_path:
+            cmd.extend(["--out", output_path])
+
+        cmd.append(input_path)
+
+        return self.run_command(cmd)

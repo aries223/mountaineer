@@ -19,18 +19,26 @@ class PreferencesDialog(QDialog):
 
         # JPEG compression level
         jpeg_layout = QHBoxLayout()
-        jpeg_label = QLabel("JPEG Compression Level:")
+        jpeg_label = QLabel("JPEG (Higher is better:)")
         self.jpeg_slider = QSlider(Qt.Orientation.Horizontal)  # Set to horizontal
-        self.jpeg_value_label = QLabel("80")
+        self.jpeg_slider.setMinimum(0)
+        self.jpeg_slider.setMaximum(100)  # Set range from 0-100
+        #self.jpeg_slider.setTickPosition(QSlider.TickPosition.TicksBelow)  # Add tickmarks below
+        #self.jpeg_slider.setTickInterval(10)  # Set tickmark interval to 10
+        self.jpeg_value_label = QLabel("95")
         jpeg_layout.addWidget(jpeg_label)
         jpeg_layout.addWidget(self.jpeg_slider)
         jpeg_layout.addWidget(self.jpeg_value_label)
 
         # PNG compression level
         png_layout = QHBoxLayout()
-        png_label = QLabel("PNG Compression Level:")
+        png_label = QLabel("PNG (lower is better):")
         self.png_slider = QSlider(Qt.Orientation.Horizontal)  # Set to horizontal
-        self.png_value_label = QLabel("65")
+        self.png_slider.setMinimum(0)
+        self.png_slider.setMaximum(6)
+        #self.png_slider.setTickPosition(QSlider.TickPosition.TicksBelow)  # Add tickmarks below
+        #self.png_slider.setTickInterval(1)  # Set tickmark interval to 1
+        self.png_value_label = QLabel("1")
         png_layout.addWidget(png_label)
         png_layout.addWidget(self.png_slider)
         png_layout.addWidget(self.png_value_label)
@@ -39,7 +47,7 @@ class PreferencesDialog(QDialog):
         layout.addLayout(png_layout)
 
         # Lossless compression checkbox
-        self.lossless_checkbox = QCheckBox("Lossless Compression")
+        self.lossless_checkbox = QCheckBox("Lossless (PNG files will take a very long time)")
 
         # Strip metadata checkbox
         self.strip_metadata_checkbox = QCheckBox("Strip Metadata")
@@ -63,14 +71,16 @@ class PreferencesDialog(QDialog):
         prefs = Preferences()
         current_prefs = prefs.load_preferences()
 
-        jpeg_level = current_prefs.get('jpeg_compression_level', 80)
-        png_level = current_prefs.get('png_compression_level', 65)
+        jpeg_level = current_prefs.get('jpeg_compression_level', 95)
+        png_level = current_prefs.get('png_compression_level', 1)
         lossless = current_prefs.get('lossless_compression', False)
         strip_metadata = current_prefs.get('strip_metadata', False)
 
         self.jpeg_slider.setValue(jpeg_level)
         self.update_jpeg_value_label(jpeg_level)
 
+        # Ensure PNG level is within 0-6 range
+        png_level = max(0, min(6, png_level))  # Clamp value to 0-6
         self.png_slider.setValue(png_level)
         self.update_png_value_label(png_level)
 
@@ -130,7 +140,3 @@ class PreferencesDialog(QDialog):
         """Set consistent appearance for sliders"""
         self.jpeg_slider.setMinimumWidth(200)
         self.png_slider.setMinimumWidth(200)
-
-        # Set page step to improve user experience
-        self.jpeg_slider.setPageStep(5)
-        self.png_slider.setPageStep(5)

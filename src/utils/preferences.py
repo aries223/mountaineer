@@ -3,8 +3,8 @@ import json
 
 class Preferences:
     DEFAULT_PREFERENCES = {
-        'jpeg_compression_level': 80,
-        'png_compression_level': 65,
+        'jpeg_compression_level': 95,
+        'png_compression_level': 1,
         'lossless_compression': False,
         'strip_metadata': False,
 
@@ -17,8 +17,8 @@ class Preferences:
         # Preferences dialog settings
         'prefs_dialog_x': None,
         'prefs_dialog_y': None,
-        'prefs_dialog_width': 500,
-        'prefs_dialog_height': 300
+        'prefs_dialog_width': 750,
+        'prefs_dialog_height': 275
     }
 
     def __init__(self):
@@ -91,8 +91,8 @@ class Preferences:
         return {
             'x': prefs.get('prefs_dialog_x'),
             'y': prefs.get('prefs_dialog_y'),
-            'width': prefs.get('prefs_dialog_width', 500),
-            'height': prefs.get('prefs_dialog_height', 300)
+            'width': prefs.get('prefs_dialog_width', 750),
+            'height': prefs.get('prefs_dialog_height', 275)
         }
 
     def save_prefs_dialog_settings(self, x, y, width, height):

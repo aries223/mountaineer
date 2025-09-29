@@ -6,17 +6,14 @@ class JpegCompressor(BaseCompressor):
 
     def compress_file(self, input_path, output_path=None, lossless=False,
                      strip_metadata=False, jpeg_quality=None):
-        if jpeg_quality is None and not lossless:
-            raise ValueError("jpeg_quality must be provided for non-lossless compression")
+        if jpeg_quality is None:
+            raise ValueError("jpeg_quality must be provided")
 
         cmd = ["jpegoptim"]
 
         if not lossless:
-            # Normal (not lossless) compression
-            cmd.extend(["-f", f"-m{int(jpeg_quality)}"])
-        else:
-            # Lossless - do nothing
-            return True
+            # Use custom compression level from preferences
+            cmd.append(f"-m{int(jpeg_quality)}")
 
         if strip_metadata:
             cmd.append("--strip-all")
