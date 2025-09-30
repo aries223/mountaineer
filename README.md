@@ -1,4 +1,4 @@
-https://github.com/aries223/mountaineer/blob/main/src/ui/logo/mountaineer.png?raw=true
+![screenshot](src/ui/logo/mountaineer.png)
 
 
 
