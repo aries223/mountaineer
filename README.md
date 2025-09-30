@@ -12,7 +12,7 @@ Mountaineer is a powerful desktop application designed to simplify image compres
 
 ### 1. **Image Compression**
 - **JPEG Support**: Uses `jpegoptim` for efficient JPEG compression with adjustable quality levels
-- **PNG Support**: Combines `pngquant` and `oxipng` for optimal PNG compression with lossy and lossless options
+- **PNG Support**: Uses `oxipng` for optimal PNG compression with lossy and lossless options
 - **Metadata Stripping**: Option to remove metadata from compressed files for reduced file size
 
 ### 2. **User Interface**
