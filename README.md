@@ -55,8 +55,9 @@ Before running the application, you need to install the following command-line t
 ### Ubuntu/Debian:
 ```bash
 sudo apt-get install jpegoptim oxipng
-
+```
 
 ### Fedora/Red Hat:
 ```bash
 sudo dnf install jpegoptim oxipng
+```
