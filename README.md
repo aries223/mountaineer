@@ -1,3 +1,8 @@
+https://github.com/aries223/mountaineer/blob/main/src/ui/logo/mountaineer.png?raw=true
+
+
+
+
 # Mountaineer
 
 Mountaineer is a powerful desktop application designed to simplify image compression for photographers, designers, and anyone working with large collections of JPEG and PNG images. It provides an intuitive interface for batch compressing images while offering compression customization options through its preferences system.
