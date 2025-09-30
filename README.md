@@ -45,6 +45,11 @@ Mountaineer combines powerful image compression capabilities with an intuitive u
 
 ___
 
+## Prerequisites
+
+- Python 3.8 or higher (preferably the latest Python 3.13 release)
+- Pip (Python package installer)
+
 ## System Dependencies
 
 Before running the application, you need to install the following command-line tools from your system's package manager:
@@ -60,4 +65,12 @@ sudo apt-get install jpegoptim oxipng
 ### Fedora/Red Hat:
 ```bash
 sudo dnf install jpegoptim oxipng
+```
+
+Install python dependencies:
+- PyQT6
+- pillow
+
+```bash
+pip install -r requirements.txt
 ```
