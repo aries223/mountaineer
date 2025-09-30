@@ -1,5 +1,6 @@
-![screenshot](src/ui/logo/mountaineer.png)
-
+<p align="center">
+![logo](src/ui/logo/mountaineer.png)
+</p>
 
 
 
