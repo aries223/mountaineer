@@ -11,14 +11,14 @@ class Preferences:
         # Main window settings
         'main_window_x': None,       # Start with None to detect if user moved window
         'main_window_y': None,
-        'main_window_width': 1200,   # Default main window size
-        'main_window_height': 1600,
+        'main_window_width': 675,   # Default main window size
+        'main_window_height': 725,
 
         # Preferences dialog settings
         'prefs_dialog_x': None,
         'prefs_dialog_y': None,
-        'prefs_dialog_width': 750,
-        'prefs_dialog_height': 275
+        'prefs_dialog_width': 510,
+        'prefs_dialog_height': 215
     }
 
     def __init__(self):
@@ -56,8 +56,8 @@ class Preferences:
         return {
             'x': prefs.get('main_window_x'),
             'y': prefs.get('main_window_y'),
-            'width': prefs.get('main_window_width', 1200),
-            'height': prefs.get('main_window_height', 1600)
+            'width': prefs.get('main_window_width', 675),
+            'height': prefs.get('main_window_height', 725)
         }
 
     def save_main_window_settings(self, x, y, width, height):
@@ -91,8 +91,8 @@ class Preferences:
         return {
             'x': prefs.get('prefs_dialog_x'),
             'y': prefs.get('prefs_dialog_y'),
-            'width': prefs.get('prefs_dialog_width', 750),
-            'height': prefs.get('prefs_dialog_height', 275)
+            'width': prefs.get('prefs_dialog_width', 510),
+            'height': prefs.get('prefs_dialog_height', 215)
         }
 
     def save_prefs_dialog_settings(self, x, y, width, height):

@@ -27,7 +27,7 @@ class AboutDialog(QDialog):
         # Try multiple potential paths for the logo image with better error handling
         logo_path = None
         potential_paths = [
-            '../src/ui/logo/mountaineer.png',  # Relative to project root
+            'src/ui/logo/mountaineer.png',  # Relative to project root
             'logo/mountaineer.png',             # Alternative relative path
             '/home/chris/VCoding/Mountaineer/src/ui/logo/mountaineer.png'  # Absolute path (update as needed)
         ]

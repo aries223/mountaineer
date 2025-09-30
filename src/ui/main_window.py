@@ -1,5 +1,3 @@
-# File: src/ui/main_window.py
-
 from PyQt6.QtWidgets import (
     QMainWindow, QMenuBar, QWidget, QVBoxLayout,
     QHBoxLayout, QPushButton, QLabel, QProgressBar, QSizePolicy,
