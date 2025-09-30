@@ -16,5 +16,5 @@ class TempFileManager:
                 try:
                     os.remove(temp_file)
                 except Exception as e:
-                    print(f"Error cleaning up temp file {temp_file}: {e}")
+                    pass  # Removed debug print statement
         self.temp_files.clear()

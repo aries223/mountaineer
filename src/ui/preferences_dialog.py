@@ -1,5 +1,3 @@
-# File: src/ui/preferences_dialog.py
-
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QSlider, QCheckBox, QPushButton, QHBoxLayout
 from PyQt6.QtCore import Qt  # Import Qt for orientation setting
 from utils.preferences import Preferences
@@ -110,7 +108,8 @@ class PreferencesDialog(QDialog):
         # Update current preferences dictionary
         self.current_preferences = new_prefs
 
-        print("Preferences saved")
+        pass  # Removed debug print statement
+
         self.accept()
 
     def load_preferences(self):

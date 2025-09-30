@@ -8,12 +8,12 @@ class BaseCompressor:
         try:
             result = subprocess.run(cmd, capture_output=True, text=True)
             if result.returncode != 0:
-                print(f"Command failed: {' '.join(cmd)}")
-                print(f"Error: {result.stderr}")
+                pass  # Removed debug print statement
+                pass  # Removed debug print statement
                 return False
             return True
         except Exception as e:
-            print(f"Exception running command: {e}")
+            pass  # Removed debug print statement
             return False
 
     def compress_file(self, input_path, output_path, **kwargs):

@@ -6,7 +6,7 @@ def get_image_dimensions(file_path):
         with Image.open(file_path) as img:
             return f"{img.width}x{img.height}"
     except Exception as e:
-        print(f"Error getting dimensions: {e}")
+        pass  # Removed debug print statement
         return "N/A"
 
 def get_file_size(file_path, human_readable=True):
@@ -24,7 +24,7 @@ def get_file_size(file_path, human_readable=True):
         else:
             return size
     except Exception as e:
-        print(f"Error getting file size for {file_path}: {e}")
+        pass  # Removed debug print statement
         return "0 B"
 
 def get_file_format(file_path):
@@ -32,5 +32,5 @@ def get_file_format(file_path):
         with Image.open(file_path) as img:
             return img.format.upper()
     except Exception as e:
-        print(f"Error getting format: {e}")
+        pass  # Removed debug print statement
         return "N/A"

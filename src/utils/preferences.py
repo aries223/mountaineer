@@ -31,28 +31,28 @@ class Preferences:
         if not os.path.exists(self.pref_file):
             with open(self.pref_file, 'w') as f:
                 json.dump(self.DEFAULT_PREFERENCES, f)
-                print(f"Created default preferences file at {self.pref_file}")
+                #print(f"Created default preferences file at {self.pref_file}")
 
     def load_preferences(self):
         try:
             with open(self.pref_file, 'r') as f:
                 return json.load(f)
         except Exception as e:
-            print(f"Error loading preferences: {e}")
+            #print(f"Error loading preferences: {e}")
             return self.DEFAULT_PREFERENCES
 
     def save_preferences(self, preferences):
         try:
             with open(self.pref_file, 'w') as f:
                 json.dump(preferences, f)
-                print(f"Saved preferences: {preferences}")
+                pass  # Removed debug print statement
         except Exception as e:
-            print(f"Error saving preferences: {e}")
+            pass  # Removed debug print statement
 
     # Methods for window settings
     def get_main_window_settings(self):
         prefs = self.load_preferences()
-        print(f"Loaded main window settings: {prefs}")
+        #print(f"Loaded main window settings: {prefs}")
         return {
             'x': prefs.get('main_window_x'),
             'y': prefs.get('main_window_y'),
@@ -65,7 +65,7 @@ class Preferences:
 
         # Only save meaningful positions (non-zero coordinates indicate user movement)
         if x > 0 and y > 0:
-            print(f"Saving non-zero main window position: x={x}, y={y}")
+            #print(f"Saving non-zero main window position: x={x}, y={y}")
             prefs.update({
                 'main_window_x': x,
                 'main_window_y': y
@@ -76,7 +76,7 @@ class Preferences:
                 del prefs['main_window_x']
             if 'main_window_y' in prefs:
                 del prefs['main_window_y']
-            print("Removing main window position due to invalid coordinates")
+            #print("Removing main window position due to invalid coordinates")
 
         # Always save size
         prefs.update({

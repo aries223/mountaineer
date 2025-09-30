@@ -25,7 +25,7 @@ class MainWindow(QMainWindow):
         self.preferences = Preferences()
         window_settings = self.preferences.get_main_window_settings()
 
-        print(f"Loaded main window settings: {window_settings}")
+        pass  # Removed debug print statement
 
         # Set initial window size and position based on saved preferences or defaults
         self.resize(window_settings['width'], window_settings['height'])
@@ -213,7 +213,7 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         """Save main window position and size when closing"""
-        print(f"Saving main window position: x={self.x()}, y={self.y()}, width={self.width()}, height={self.height()}")
+        pass  # Removed debug print statement
         self.preferences.save_main_window_settings(
             self.x(),
             self.y(),
@@ -270,15 +270,15 @@ class MainWindow(QMainWindow):
                             else:
                                 dir_skipped_files += is_skipped
 
-                    print(f"Processed {dir_files_processed} files from directory: {url} (skipped {dir_skipped_files})")
+                    pass  # Removed debug print statement
                     processed_files += dir_files_processed
                     skipped_files += dir_skipped_files
                 else:
-                    print(f"Skipping invalid path: {url}")
+                    pass  # Removed debug print statement
                     skipped_files += 1
 
             except Exception as e:
-                print(f"Error processing dropped item {url}: {e}")
+                pass  # Removed debug print statement
                 skipped_files += 1
                 continue
 
@@ -300,20 +300,20 @@ class MainWindow(QMainWindow):
             format_str = get_file_format(file_path)
             return format_str in ["JPEG", "PNG"]
         except Exception as e:
-            print(f"Error checking file format: {e}")
+            pass  # Removed debug print statement
             return False
 
     def _try_add_file_to_list(self, file_path):
         """Try to add a file to the list and return success status"""
         if not os.path.isfile(file_path):
-            print(f"Invalid file path: {file_path}")
+            pass  # Removed debug print statement
             return False, True  # Skipped due to invalid path
 
         try:
             format_str = get_file_format(file_path)
             supported_formats = ["JPEG", "PNG"]
             if format_str not in supported_formats:
-                print(f"Unsupported format: {format_str} for file: {file_path}")
+                pass  # Removed debug print statement
                 return False, True  # Skipped due to unsupported format
 
             # File is valid, proceed with adding
@@ -321,7 +321,7 @@ class MainWindow(QMainWindow):
             return success, False  # Successfully processed
 
         except Exception as e:
-            print(f"Error processing file {file_path}: {e}")
+            pass  # Removed debug print statement
             import traceback
             traceback.print_exc()
             return False, True  # Skipped due to error
@@ -372,7 +372,7 @@ class MainWindow(QMainWindow):
 
     def add_file_to_list(self, file_path):
         """Actual implementation of adding a valid file to the list"""
-        print(f"Adding file to list: {file_path}")
+        pass  # Removed debug print statement
 
         try:
             # Get file information
@@ -417,7 +417,7 @@ class MainWindow(QMainWindow):
             # Add to internal list
             self.file_list.append(file_path)
 
-            print(f"Added file {file_path} to list")
+            pass  # Removed debug print statement
 
             # Update info widget and reset progress bar
             self.update_info_widget()
@@ -426,7 +426,7 @@ class MainWindow(QMainWindow):
             return True
 
         except Exception as e:
-            print(f"Error processing file {file_path}: {e}")
+            pass  # Removed debug print statement
             import traceback
             traceback.print_exc()
             return False
@@ -457,7 +457,7 @@ class MainWindow(QMainWindow):
             self.info_widget.setText(f"{len(self.file_list)} files")
 
         except Exception as e:
-            print(f"Error updating info widget: {e}")
+            pass  # Removed debug print statement
             import traceback
             traceback.print_exc()
             self.info_widget.setText("Error calculating file count")
@@ -469,7 +469,7 @@ class MainWindow(QMainWindow):
         # Load preferences dialog settings
         window_settings = self.preferences.get_prefs_dialog_settings()
 
-        print(f"Loaded prefs dialog settings: {window_settings}")
+        pass  # Removed debug print statement
 
         # Set default size but allow resizing
         dialog.resize(window_settings['width'], window_settings['height'])
@@ -513,8 +513,7 @@ class MainWindow(QMainWindow):
             self.status_label.setText(message)
             QApplication.processEvents()  # Process pending events to update UI immediately
         except RuntimeError:
-            # This can happen if the widget is being deleted
-            pass
+            pass  # Removed debug print statement
 
     def _run_compression(self, file_list, total_files):
         """Run compression operations in a separate thread"""
@@ -550,7 +549,7 @@ class MainWindow(QMainWindow):
                         png_quality=self.current_preferences['png_compression_level']
                     )
                 else:
-                    print(f"Unsupported format: {format_str}")
+                    pass  # Removed debug print statement
                     signals.status_updated.emit(f"Warning: {filename} skipped due to unsupported format")
                     continue
 
@@ -568,7 +567,7 @@ class MainWindow(QMainWindow):
                         signals.compression_result_updated.emit(index, compressed_size, compression_saving)
 
                     except Exception as e:
-                        print(f"Error updating UI for compressed file: {e}")
+                        pass  # Removed debug print statement
                 else:
                     signals.status_updated.emit(f"Failed to compress: {filename} - Check if file exists")
 
@@ -580,7 +579,7 @@ class MainWindow(QMainWindow):
                 time.sleep(0.01)  # Small delay to prevent overwhelming the UI
 
             except Exception as e:
-                print(f"Error compressing {file_path}: {e}")
+                pass  # Removed debug print statement
                 signals.status_updated.emit(f"Error processing: {filename}")
 
         end_time = time.time()
@@ -613,7 +612,7 @@ class MainWindow(QMainWindow):
             else:  # Default to bytes
                 return value / (1024 * 1024)
         except Exception as e:
-            print(f"Error converting size: {e}")
+            pass  # Removed debug print statement
             return 0
 
     def _update_compression_result(self, index, compressed_size, saving_percentage):
@@ -645,7 +644,7 @@ class MainWindow(QMainWindow):
             row = item.row()
             removed_file = self.file_list.pop(row)
 
-            print(f"Removed file: {removed_file}")
+            pass  # Removed debug print statement
             self.file_list_widget.removeRow(row)
 
         # Update info widget
@@ -693,7 +692,7 @@ class MainWindow(QMainWindow):
         if 0 <= row < len(self.file_list):
             # Remove from internal list first
             removed_file = self.file_list.pop(row)
-            print(f"Removed file: {removed_file}")
+            pass  # Removed debug print statement
 
             # Remove from widget
             self.file_list_widget.removeRow(row)

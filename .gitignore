@@ -60,3 +60,6 @@ ENV/
 
 # Vscode
 .vscode/
+
+# Mine - remove me eventually
+backup/
