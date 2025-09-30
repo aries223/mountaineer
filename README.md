@@ -42,3 +42,21 @@ Mountaineer is a powerful desktop application designed to simplify image compres
 - **Error Reporting**: Clear status bar messages for all operations including errors and warnings
 
 Mountaineer combines powerful image compression capabilities with an intuitive user interface, making it the perfect tool for anyone needing to efficiently manage and compress large collections of images.
+
+___
+
+## System Dependencies
+
+Before running the application, you need to install the following command-line tools from your system's package manager:
+
+- **jpegoptim**: For JPEG compression
+- **oxipng**: For PNG compression
+
+### Ubuntu/Debian:
+```bash
+sudo apt-get install jpegoptim oxipng
+
+
+### Fedora/Red Hat:
+```bash
+sudo dnf install jpegoptim oxipng
