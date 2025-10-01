@@ -42,7 +42,7 @@ class AboutDialog(QDialog):
             try:
                 logo_label = QLabel()
                 pixmap = QPixmap(logo_path)
-                logo_label.setPixmap(pixmap.scaledToHeight(100))  # Scale logo height to 100 pixels
+                logo_label.setPixmap(pixmap.scaledToHeight(300))  # Scale logo height to 100 pixels
                 layout.addWidget(logo_label, alignment=Qt.AlignmentFlag.AlignCenter)  # Center align the logo
             except Exception:
                 pass  # Handle exception without printing debug info
