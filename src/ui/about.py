@@ -24,21 +24,11 @@ class AboutDialog(QDialog):
 
         layout = QVBoxLayout()
 
-        # Try multiple potential paths for the logo image with better error handling
-        logo_path = None
-        potential_paths = [
-            'src/ui/logo/mountaineer.png',  # Relative to project root
-            'logo/mountaineer.png',             # Alternative relative path
-            '/home/chris/VCoding/Mountaineer/src/ui/logo/mountaineer.png'  # Absolute path (update as needed)
-        ]
-
-        for path in potential_paths:
-            if os.path.exists(path):
-                logo_path = path
-                break
+        # Direct path for the logo image
+        logo_path = '/usr/share/pixmaps/mountaineer.png'
 
         # Display logo if found with proper error handling
-        if logo_path and os.path.exists(logo_path):
+        if os.path.exists(logo_path):
             try:
                 logo_label = QLabel()
                 pixmap = QPixmap(logo_path)
@@ -46,8 +36,6 @@ class AboutDialog(QDialog):
                 layout.addWidget(logo_label, alignment=Qt.AlignmentFlag.AlignCenter)  # Center align the logo
             except Exception:
                 pass  # Handle exception without printing debug info
-        else:
-            pass  # Logo not found - no need for debug print
 
         about_text = """
 <center><h1>Mountaineer</h1>
