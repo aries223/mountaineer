@@ -41,7 +41,7 @@ class AboutDialog(QDialog):
 <center><h1>Mountaineer</h1>
 A powerful image compression tool for <br/>
 photographers and designers.<br/>
-<p><b>Version:</b> 1.0<br/></p>
+<p><b>Version:</b> 1.0.2<br/></p>
 <p>©aries223 2025</p></center>
 """
 
