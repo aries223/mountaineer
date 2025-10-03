@@ -53,15 +53,11 @@ This app has been tested to run on Fedora 42 KDE and Gnome.
 - Python 3.8 or higher (preferably the latest Python 3.13 release)
 - Pip (Python package installer)
 
-1. Install dependencies
-```bash
-sudo dnf install jpegoptim oxipng
-```
-2. Install requirements
+1. Install Prerequisites (if you dont have them already)
 ```bash
 pip install PyQt6 pillow
 ```
-3. Install the app
+2. Install the app
 ```bash
-sudo dnf install Mountaineer-1.0-1.fc42.x86_64.rpm
+sudo dnf install Mountaineer-1.1.0-1.fc42.x86_64.rpm
 ```
