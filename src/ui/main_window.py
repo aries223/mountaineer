@@ -50,11 +50,11 @@ class MainWindow(QMainWindow):
         exit_action.triggered.connect(self.close)
 
         # Edit menu
-        edit_menu = self.menu_bar.addMenu("Edit")
-        remove_action = edit_menu.addAction("Remove")
-        clear_action = edit_menu.addAction("Clear")
-        select_all_action = edit_menu.addAction("Select All")
-        preferences_action = edit_menu.addAction("Preferences...")
+        self.edit_menu = self.menu_bar.addMenu("Edit")  # Store reference to this menu
+        remove_action = self.edit_menu.addAction("Remove")  # This will be dynamically updated
+        clear_action = self.edit_menu.addAction("Clear")
+        select_all_action = self.edit_menu.addAction("Select All")
+        preferences_action = self.edit_menu.addAction("Preferences...")
 
         # Connect Edit menu actions
         remove_action.triggered.connect(self.remove_selected_files)
@@ -187,6 +187,9 @@ class MainWindow(QMainWindow):
         signals.status_updated.connect(self._safe_update_status)
         signals.compression_complete.connect(self._safe_update_status)
         signals.compression_result_updated.connect(self._update_compression_result)  # New signal connection
+
+        # Connect selection model to update menu text
+        self.file_list_widget.selectionModel().selectionChanged.connect(self._update_remove_menu_text)
 
     def _set_button_style(self, button):
         """Set consistent style for all buttons"""
@@ -632,21 +635,35 @@ class MainWindow(QMainWindow):
 
     def remove_selected_files(self):
         """Remove selected files from the file list"""
-        # Get all selected rows
-        selected_items = self.file_list_widget.selectedItems()
-        if not selected_items:
+        # Get all selected rows (unique rows based on row number)
+        selected_rows = set()
+        for item in self.file_list_widget.selectedItems():
+            selected_rows.add(item.row())
+
+        if not selected_rows:
             return  # No selection, do nothing
 
-        # Remove selected items in reverse order (to maintain proper indexing)
-        for item in sorted(selected_items, key=lambda x: x.row(), reverse=True):
-            row = item.row()
+        # Remove selected items in reverse order to maintain proper indexing
+        for row in sorted(selected_rows, reverse=True):
             removed_file = self.file_list.pop(row)
-
-            pass  # Removed debug print statement
             self.file_list_widget.removeRow(row)
 
-        # Update info widget
+        # Update info widget and reset progress bar
         self.update_info_widget()
+        self.reset_progress_bar()
+
+    def _update_remove_menu_text(self):
+        """Update the 'Remove' menu text based on current selection"""
+        selected_rows = set()
+        for item in self.file_list_widget.selectedItems():
+            selected_rows.add(item.row())
+
+        if len(selected_rows) == 0:
+            self.edit_menu.actions()[0].setText("Remove")
+        elif len(selected_rows) == 1:
+            self.edit_menu.actions()[0].setText("Remove File")
+        else:
+            self.edit_menu.actions()[0].setText(f"Remove {len(selected_rows)} Files")
 
     def select_all_files(self):
         """Select all files in the file list"""
@@ -672,18 +689,21 @@ class MainWindow(QMainWindow):
         if not self.file_list_widget.selectedItems():
             return  # No selection, do nothing
 
-        # Get the selected row
-        item = self.file_list_widget.itemAt(position)
-        if item and item.column() == 0:  # Only allow removal from File Name column
-            row = item.row()
+        # Get all selected rows (unique based on row number)
+        selected_rows = set()
+        for item in self.file_list_widget.selectedItems():
+            selected_rows.add(item.row())
 
-            menu = QMenu(self)
-            remove_action = menu.addAction("Remove File")
+        if not selected_rows:
+            return  # No selection, do nothing
 
-            action = menu.exec(self.file_list_widget.viewport().mapToGlobal(position))
+        menu = QMenu(self)
+        remove_action = menu.addAction(f"Remove {'Selected Files' if len(selected_rows) > 1 else 'File'}")
 
-            if action == remove_action:
-                self.remove_file_from_list(row)
+        action = menu.exec(self.file_list_widget.viewport().mapToGlobal(position))
+
+        if action == remove_action:
+            self.remove_selected_files()  # Reuse the updated method for removing multiple files
 
     def remove_file_from_list(self, row):
         """Remove file from list and update UI"""
