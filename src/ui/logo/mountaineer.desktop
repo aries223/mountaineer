@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=Mountaineer
-Version=1.0.2
+Version=1.1.0
 Exec=/usr/bin/mountaineer %U
 StartupNotify=true
 Type=Application
