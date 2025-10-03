@@ -59,5 +59,6 @@ pip install PyQt6 pillow
 ```
 2. Install the app
 ```bash
-sudo dnf install Mountaineer-1.1.0-1.fc42.x86_64.rpm
+sudo dnf install <Mountaineer-XXXXX.rpm>
 ```
+(<insert current .rpm filename>)
