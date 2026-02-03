@@ -62,3 +62,6 @@ pip install PyQt6 pillow
 sudo dnf install <Mountaineer-XXXXX.rpm>
 ```
 (<insert current .rpm filename>)
+
+## AI Disclaimer
+Mountaineer is coded using modern AI assisted coding (AIAC). We see AIAC as an important tool, which allows us to produce applications we wouldnt otherwise be able to produce. Every effort is taken to prevent 'slop'.
