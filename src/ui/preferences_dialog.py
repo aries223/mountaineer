@@ -41,6 +41,10 @@ class PreferencesDialog(QDialog):
         self.jpeg_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
         self.jpeg_slider.setTickInterval(10)
         self.jpeg_slider.setMinimumWidth(200)
+        self.jpeg_slider.setToolTip(
+            "Higher values preserve more quality with larger file sizes.\n"
+            "0 = lowest quality (smallest file); 100 = highest quality (largest file)."
+        )
         self.jpeg_value_label = QLabel("")
         self.jpeg_value_label.setFixedWidth(_jpeg_val_width)
         jpeg_layout.addWidget(jpeg_label)
@@ -80,6 +84,10 @@ class PreferencesDialog(QDialog):
         self.png_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
         self.png_slider.setTickInterval(1)
         self.png_slider.setMinimumWidth(200)
+        self.png_slider.setToolTip(
+            "Controls how hard oxipng works to compress the file. Higher values are slower but produce smaller files.\n"
+            "0 = fastest (least compression); 6 = slowest (most compression)."
+        )
         self.png_value_label = QLabel("")
         self.png_value_label.setFixedWidth(_png_val_width)
         png_layout.addWidget(png_label)
@@ -159,6 +167,10 @@ class PreferencesDialog(QDialog):
         self.webp_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
         self.webp_slider.setTickInterval(10)
         self.webp_slider.setMinimumWidth(200)
+        self.webp_slider.setToolTip(
+            "Higher values preserve more quality with larger file sizes.\n"
+            "0 = lowest quality (smallest file); 100 = highest quality (largest file)."
+        )
         self.webp_value_label = QLabel("")
         self.webp_value_label.setFixedWidth(_webp_val_width)
         webp_layout.addWidget(webp_label)
