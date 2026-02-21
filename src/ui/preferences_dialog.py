@@ -105,9 +105,9 @@ class PreferencesDialog(QDialog):
         gif_group_layout.setSpacing(2)
 
         gif_layout = QHBoxLayout()
-        gif_label = QLabel("GIF Lossy Level:")
+        gif_label = QLabel("GIF Loss Amount:")
         _gif_left_margin = (
-            gif_label.fontMetrics().horizontalAdvance("GIF Lossy Level:")
+            gif_label.fontMetrics().horizontalAdvance("GIF Loss Amount:")
             + gif_label.contentsMargins().left()
             + _style_h_spacing
         )
@@ -116,8 +116,12 @@ class PreferencesDialog(QDialog):
         self.gif_slider.setMinimum(0)
         self.gif_slider.setMaximum(200)
         self.gif_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
-        self.gif_slider.setTickInterval(10)
+        self.gif_slider.setTickInterval(20)
         self.gif_slider.setMinimumWidth(200)
+        self.gif_slider.setToolTip(
+            "Controls gifsicle --lossy compression strength.\n"
+            "0 = no explicit loss; higher values trade quality for smaller file size."
+        )
         self.gif_value_label = QLabel("")
         self.gif_value_label.setFixedWidth(_gif_val_width)
         gif_layout.addWidget(gif_label)
@@ -205,8 +209,7 @@ class PreferencesDialog(QDialog):
         update_jpeg_value_label / update_png_value_label from firing before
         current_preferences has been populated from disk.
         """
-        prefs = Preferences()
-        current_prefs = prefs.load_preferences()
+        current_prefs = self.preferences.load_preferences()
 
         jpeg_level = current_prefs.get('jpeg_compression_level', 95)
         png_level = current_prefs.get('png_compression_level', 1)
@@ -216,6 +219,7 @@ class PreferencesDialog(QDialog):
         strip_metadata = current_prefs.get('strip_metadata', False)
         warn_before_overwrite = current_prefs.get('warn_before_overwrite', True)
 
+        jpeg_level = max(0, min(100, jpeg_level))
         self.jpeg_slider.blockSignals(True)
         self.jpeg_slider.setValue(jpeg_level)
         self.jpeg_slider.blockSignals(False)
@@ -256,10 +260,8 @@ class PreferencesDialog(QDialog):
 
     def save_preferences(self):
         """Save compression preferences, preserving existing window geometry settings."""
-        prefs = Preferences()
-
         # Load existing prefs first so window geometry keys are not overwritten
-        existing_prefs = prefs.load_preferences()
+        existing_prefs = self.preferences.load_preferences()
 
         # Include warn_before_overwrite from existing_prefs so the in-memory
         # state in MainWindow stays consistent with what was written to disk.
@@ -274,7 +276,7 @@ class PreferencesDialog(QDialog):
         }
 
         existing_prefs.update(new_values)
-        prefs.save_preferences(existing_prefs)
+        self.preferences.save_preferences(existing_prefs)
 
         self.preferences.save_prefs_dialog_settings(
             self.x(), self.y(), self.width(), self.height()

@@ -1,4 +1,8 @@
+import logging
+
 from .base_compressor import BaseCompressor
+
+logger = logging.getLogger(__name__)
 
 
 class JpegCompressor(BaseCompressor):
@@ -14,7 +18,9 @@ class JpegCompressor(BaseCompressor):
         to set the output quality (0–100).
         """
         if jpeg_quality is None and not lossless:
-            raise ValueError("jpeg_quality must be provided for non-lossless compression")
+            self.last_error = "jpeg_quality must be provided for non-lossless compression"
+            logger.error(self.last_error)
+            return False
 
         cmd = ["jpegoptim"]
 

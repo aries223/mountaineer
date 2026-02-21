@@ -25,7 +25,7 @@ class Preferences:
         'prefs_dialog_x': None,
         'prefs_dialog_y': None,
         'prefs_dialog_width': 510,
-        'prefs_dialog_height': 285,
+        'prefs_dialog_height': 400,
     }
 
     def __init__(self):
@@ -82,7 +82,7 @@ class Preferences:
             'x': prefs.get('prefs_dialog_x'),
             'y': prefs.get('prefs_dialog_y'),
             'width': prefs.get('prefs_dialog_width', 510),
-            'height': prefs.get('prefs_dialog_height', 285),
+            'height': prefs.get('prefs_dialog_height', 400),
         }
 
     def save_prefs_dialog_settings(self, x, y, width, height):

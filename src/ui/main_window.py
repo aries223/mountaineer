@@ -23,6 +23,11 @@ from utils.signals import signals
 
 logger = logging.getLogger(__name__)
 
+# External CLI tools that must be present for compression to be available.
+# Stored as a module-level constant so _check_tool_availability and
+# _set_compression_running always refer to the same canonical set.
+_REQUIRED_TOOLS = ("jpegoptim", "oxipng", "gifsicle", "cwebp")
+
 # Foreground colour applied to "Saved" cells when compression increased file
 # size. Slightly lighter than pure red so it remains readable on dark themes.
 _NEGATIVE_SAVINGS_COLOR = QColor(220, 50, 50)
@@ -214,9 +219,9 @@ class MainWindow(QMainWindow):
     # ── Tool availability ─────────────────────────────────────────────────────
 
     def _check_tool_availability(self):
-        """Check that jpegoptim, oxipng, gifsicle, and cwebp are installed; disable Compress if not."""
+        """Check that all required tools are installed; disable Compress if any are missing."""
         missing = [
-            t for t in ("jpegoptim", "oxipng", "gifsicle", "cwebp")
+            t for t in _REQUIRED_TOOLS
             if not shutil.which(t)
         ]
         if missing:
@@ -245,9 +250,8 @@ class MainWindow(QMainWindow):
         # Disable table sorting so row indices remain stable during compression
         self.file_list_widget.setSortingEnabled(enabled)
         if enabled:
-            # Re-enable Compress only when all tools are present
-            if (shutil.which("jpegoptim") and shutil.which("oxipng")
-                    and shutil.which("gifsicle") and shutil.which("cwebp")):
+            # Re-enable Compress only when every required tool is present.
+            if all(shutil.which(t) for t in _REQUIRED_TOOLS):
                 self.compress_button.setEnabled(True)
         else:
             self.compress_button.setEnabled(False)
@@ -414,9 +418,10 @@ class MainWindow(QMainWindow):
 
         Args:
             file_path: Absolute path to the image file.
-            format_str: Pre-resolved format string ('JPEG' or 'PNG'). When
-                provided the Pillow format-detection call is skipped, avoiding
-                a redundant file open.  When None the format is resolved here.
+            format_str: Pre-resolved format string ('JPEG', 'PNG', 'GIF', or
+                'WEBP'). When provided the Pillow format-detection call is
+                skipped, avoiding a redundant file open.  When None the format
+                is resolved here.
         """
         try:
             if format_str is None:

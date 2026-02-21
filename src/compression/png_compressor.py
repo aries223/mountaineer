@@ -1,4 +1,8 @@
+import logging
+
 from .base_compressor import BaseCompressor
+
+logger = logging.getLogger(__name__)
 
 
 class PngCompressor(BaseCompressor):
@@ -19,7 +23,9 @@ class PngCompressor(BaseCompressor):
             cmd.extend(["-omax", "-Z", "--fast"])
         else:
             if png_quality is None:
-                raise ValueError("png_quality must be provided for non-lossless compression")
+                self.last_error = "png_quality must be provided for non-lossless compression"
+                logger.error(self.last_error)
+                return False
             cmd.extend([f"-o{int(png_quality)}", "-f", "0-9"])
 
         if strip_metadata:

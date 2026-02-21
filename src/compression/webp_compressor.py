@@ -66,11 +66,16 @@ class WebpCompressor(BaseCompressor):
         if in_place:
             # Create the temp file in the same directory as the source so that
             # os.replace() is guaranteed to be an atomic same-filesystem rename.
-            tmp_fd, tmp_path = tempfile.mkstemp(
-                suffix=".webp",
-                dir=os.path.dirname(os.path.abspath(input_path)),
-            )
-            os.close(tmp_fd)
+            try:
+                tmp_fd, tmp_path = tempfile.mkstemp(
+                    suffix=".webp",
+                    dir=os.path.dirname(os.path.abspath(input_path)),
+                )
+                os.close(tmp_fd)
+            except OSError as exc:
+                self.last_error = f"Could not create temporary file: {exc}"
+                logger.error(self.last_error)
+                return False
             effective_output = tmp_path
         else:
             effective_output = output_path  # type: ignore[assignment]
@@ -81,9 +86,11 @@ class WebpCompressor(BaseCompressor):
             cmd.append("-lossless")
 
         # Use provided quality level; fall back to 80 when lossless=True and
-        # no level was supplied so the -q flag is always present.
+        # no level was supplied so the -q flag is always present.  Clamp to
+        # [0, 100] — the valid range accepted by cwebp — before use.
         quality = int(webp_compression_level if webp_compression_level is not None else 80)
-        cmd.extend(["-q", str(quality)])
+        webp_compression_level = max(0, min(100, quality))
+        cmd.extend(["-q", str(webp_compression_level)])
 
         if strip_metadata:
             cmd.extend(["-metadata", "none"])

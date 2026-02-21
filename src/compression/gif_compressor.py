@@ -27,10 +27,18 @@ class GifCompressor(BaseCompressor):
     ) -> bool:
         """Compress a GIF file using gifsicle.
 
-        In lossless mode the --lossy flag is omitted entirely so that no
-        quality is sacrificed.  In lossy mode --lossy=N controls compression
-        strength (0 = lossless quality, 200 = maximum lossy).  Higher values
-        produce smaller files at the cost of more visible artefacts.
+        In lossless mode the --lossy flag is omitted and the optimization level
+        is lowered to -O2.  gifsicle's -O3 performs a frame-level rewriting
+        pass that, even without --lossy, can introduce visible changes to
+        palette and dithering; -O2 avoids that pass and is the safest
+        "lossless" option gifsicle offers.  Note that neither mode produces
+        output that is bit-for-bit identical to the original — -O2 without
+        --lossy simply avoids any *explicit* lossy degradation.
+
+        In lossy mode -O3 is used together with --lossy=N, which controls
+        compression strength (0 = lossless quality, 200 = maximum lossy).
+        Higher values produce smaller files at the cost of more visible
+        artefacts.
 
         Animated GIFs are handled natively by gifsicle; all frames are
         processed in a single pass.
@@ -42,11 +50,17 @@ class GifCompressor(BaseCompressor):
         Args:
             input_path: Absolute path to the source GIF file.
             output_path: Destination path, or None to rewrite in-place.
-            lossless: When True, skip the --lossy flag entirely.
+            lossless: When True, use -O2 without --lossy to avoid explicit
+                lossy degradation.  When False, use -O3 with --lossy=N.
             strip_metadata: When True, strip GIF comments, extensions, and
                 named blocks via --no-comments --no-extensions --no-names.
+                WARNING: --no-extensions also removes the Netscape 2.0
+                application extension that encodes the loop count for animated
+                GIFs.  After metadata stripping, animated GIFs will play once
+                and then stop looping.
             gif_lossy_level: Lossy compression strength (0–200).  Required
                 when lossless is False; ignored when lossless is True.
+                Values are clamped to [0, 200] before use.
 
         Returns:
             True on success, False on failure (details in self.last_error).
@@ -58,10 +72,16 @@ class GifCompressor(BaseCompressor):
             logger.error(self.last_error)
             return False
 
-        cmd = ["gifsicle", "-O3"]
+        # Use -O2 in lossless mode to avoid the frame-rewriting pass that
+        # -O3 performs.  In lossy mode -O3 is appropriate because --lossy
+        # already accepts quality loss as a trade-off for smaller output.
+        optimization_level = "-O2" if lossless else "-O3"
+        cmd = ["gifsicle", optimization_level]
 
         if not lossless:
-            cmd.append(f"--lossy={int(gif_lossy_level)}")  # type: ignore[arg-type]
+            # Clamp to the valid gifsicle range before constructing the flag.
+            gif_lossy_level = max(0, min(200, int(gif_lossy_level)))  # type: ignore[arg-type]
+            cmd.append(f"--lossy={gif_lossy_level}")
 
         if strip_metadata:
             # gifsicle metadata-stripping flags:
