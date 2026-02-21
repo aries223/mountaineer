@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QLabel, QSlider, QCheckBox, QPushButton, QHBoxLayout,
-    QApplication,
+    QApplication, QStyle,
 )
 from PyQt6.QtCore import Qt
 
@@ -18,35 +18,87 @@ class PreferencesDialog(QDialog):
         self.current_preferences = {}
 
         # JPEG compression level
+        # PM_LayoutHorizontalSpacing gives the actual style-dependent gap between
+        # adjacent layout items, which is what separates the label from the slider.
+        _style_h_spacing = self.style().pixelMetric(QStyle.PixelMetric.PM_LayoutHorizontalSpacing)
+
+        jpeg_group_layout = QVBoxLayout()
+        jpeg_group_layout.setSpacing(2)
+
         jpeg_layout = QHBoxLayout()
-        jpeg_label = QLabel("JPEG Quality: (0=worst, 100=best)")
+        jpeg_label = QLabel("JPEG Quality:")
+        # Measure the label's own font after construction so the advance is
+        # exact; contentsMargins().left() accounts for any internal padding.
+        _jpeg_left_margin = (
+            jpeg_label.fontMetrics().horizontalAdvance("JPEG Quality:")
+            + jpeg_label.contentsMargins().left()
+            + _style_h_spacing
+        )
+        _jpeg_val_width = jpeg_label.fontMetrics().horizontalAdvance("100") + 4
         self.jpeg_slider = QSlider(Qt.Orientation.Horizontal)
         self.jpeg_slider.setMinimum(0)
         self.jpeg_slider.setMaximum(100)
         self.jpeg_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
         self.jpeg_slider.setTickInterval(10)
         self.jpeg_slider.setMinimumWidth(200)
-        self.jpeg_value_label = QLabel("95")
+        self.jpeg_value_label = QLabel("")
+        self.jpeg_value_label.setFixedWidth(_jpeg_val_width)
         jpeg_layout.addWidget(jpeg_label)
         jpeg_layout.addWidget(self.jpeg_slider)
         jpeg_layout.addWidget(self.jpeg_value_label)
 
+        jpeg_tick_layout = QHBoxLayout()
+        jpeg_tick_layout.setContentsMargins(
+            _jpeg_left_margin, 0, _jpeg_val_width + _style_h_spacing, 0
+        )
+        jpeg_tick_layout.addWidget(QLabel("0"))
+        jpeg_tick_layout.addStretch()
+        jpeg_tick_layout.addWidget(QLabel("50"))
+        jpeg_tick_layout.addStretch()
+        jpeg_tick_layout.addWidget(QLabel("100"))
+
+        jpeg_group_layout.addLayout(jpeg_layout)
+        jpeg_group_layout.addLayout(jpeg_tick_layout)
+
         # PNG compression effort
+        png_group_layout = QVBoxLayout()
+        png_group_layout.setSpacing(2)
+
         png_layout = QHBoxLayout()
-        png_label = QLabel("PNG Compression Effort: (0=least/fastest, 6=most/slowest)")
+        png_label = QLabel("PNG Compression Effort:")
+        # Same measurement strategy as the JPEG block: use the label's own
+        # fontMetrics() after construction for accurate pixel widths.
+        _png_left_margin = (
+            png_label.fontMetrics().horizontalAdvance("PNG Compression Effort:")
+            + png_label.contentsMargins().left()
+            + _style_h_spacing
+        )
+        _png_val_width = png_label.fontMetrics().horizontalAdvance("6") + 4
         self.png_slider = QSlider(Qt.Orientation.Horizontal)
         self.png_slider.setMinimum(0)
         self.png_slider.setMaximum(6)
         self.png_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
         self.png_slider.setTickInterval(1)
         self.png_slider.setMinimumWidth(200)
-        self.png_value_label = QLabel("1")
+        self.png_value_label = QLabel("")
+        self.png_value_label.setFixedWidth(_png_val_width)
         png_layout.addWidget(png_label)
         png_layout.addWidget(self.png_slider)
         png_layout.addWidget(self.png_value_label)
 
-        layout.addLayout(jpeg_layout)
-        layout.addLayout(png_layout)
+        png_tick_layout = QHBoxLayout()
+        png_tick_layout.setContentsMargins(
+            _png_left_margin, 0, _png_val_width + _style_h_spacing, 0
+        )
+        png_tick_layout.addWidget(QLabel("0"))
+        png_tick_layout.addStretch()
+        png_tick_layout.addWidget(QLabel("6"))
+
+        png_group_layout.addLayout(png_layout)
+        png_group_layout.addLayout(png_tick_layout)
+
+        layout.addLayout(jpeg_group_layout)
+        layout.addLayout(png_group_layout)
 
         self.lossless_checkbox = QCheckBox("Lossless (PNG files will take a very long time)")
         self.strip_metadata_checkbox = QCheckBox("Strip Metadata")

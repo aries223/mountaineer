@@ -120,11 +120,10 @@ class MainWindow(QMainWindow):
         self.file_list_widget.setSortingEnabled(True)
 
         header = self.file_list_widget.horizontalHeader()
+        header.setStretchLastSection(False)
         for i in range(self.file_list_widget.columnCount()):
-            if i == 0:
-                header.setSectionResizeMode(i, QHeaderView.ResizeMode.Stretch)
-            else:
-                header.setSectionResizeMode(i, QHeaderView.ResizeMode.Interactive)
+            header.setSectionResizeMode(i, QHeaderView.ResizeMode.Interactive)
+        header.resizeSection(0, 250)
 
         self.file_list_widget.setAcceptDrops(True)
         self.file_list_widget.viewport().setAcceptDrops(True)
