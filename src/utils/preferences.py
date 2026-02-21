@@ -1,5 +1,9 @@
-import os
 import json
+import logging
+import os
+
+logger = logging.getLogger(__name__)
+
 
 class Preferences:
     DEFAULT_PREFERENCES = {
@@ -7,18 +11,19 @@ class Preferences:
         'png_compression_level': 1,
         'lossless_compression': False,
         'strip_metadata': False,
+        'warn_before_overwrite': True,
 
         # Main window settings
-        'main_window_x': None,       # Start with None to detect if user moved window
+        'main_window_x': None,
         'main_window_y': None,
-        'main_window_width': 675,   # Default main window size
+        'main_window_width': 675,
         'main_window_height': 725,
 
         # Preferences dialog settings
         'prefs_dialog_x': None,
         'prefs_dialog_y': None,
         'prefs_dialog_width': 510,
-        'prefs_dialog_height': 215
+        'prefs_dialog_height': 215,
     }
 
     def __init__(self):
@@ -31,59 +36,43 @@ class Preferences:
         if not os.path.exists(self.pref_file):
             with open(self.pref_file, 'w') as f:
                 json.dump(self.DEFAULT_PREFERENCES, f)
-                #print(f"Created default preferences file at {self.pref_file}")
 
     def load_preferences(self):
+        """Load preferences from disk, falling back to defaults on error."""
         try:
             with open(self.pref_file, 'r') as f:
                 return json.load(f)
         except Exception as e:
-            #print(f"Error loading preferences: {e}")
-            return self.DEFAULT_PREFERENCES
+            logger.warning("Error loading preferences: %s", e)
+            return self.DEFAULT_PREFERENCES.copy()
 
     def save_preferences(self, preferences):
+        """Write preferences dict to disk."""
         try:
             with open(self.pref_file, 'w') as f:
                 json.dump(preferences, f)
-                pass  # Removed debug print statement
         except Exception as e:
-            pass  # Removed debug print statement
+            logger.error("Error saving preferences: %s", e)
 
-    # Methods for window settings
     def get_main_window_settings(self):
         prefs = self.load_preferences()
-        #print(f"Loaded main window settings: {prefs}")
         return {
             'x': prefs.get('main_window_x'),
             'y': prefs.get('main_window_y'),
             'width': prefs.get('main_window_width', 675),
-            'height': prefs.get('main_window_height', 725)
+            'height': prefs.get('main_window_height', 725),
         }
 
     def save_main_window_settings(self, x, y, width, height):
         prefs = self.load_preferences()
 
-        # Only save meaningful positions (non-zero coordinates indicate user movement)
         if x > 0 and y > 0:
-            #print(f"Saving non-zero main window position: x={x}, y={y}")
-            prefs.update({
-                'main_window_x': x,
-                'main_window_y': y
-            })
+            prefs.update({'main_window_x': x, 'main_window_y': y})
         else:
-            # Remove coordinates if they're invalid (reset to None)
-            if 'main_window_x' in prefs:
-                del prefs['main_window_x']
-            if 'main_window_y' in prefs:
-                del prefs['main_window_y']
-            #print("Removing main window position due to invalid coordinates")
+            prefs.pop('main_window_x', None)
+            prefs.pop('main_window_y', None)
 
-        # Always save size
-        prefs.update({
-            'main_window_width': width,
-            'main_window_height': height
-        })
-
+        prefs.update({'main_window_width': width, 'main_window_height': height})
         self.save_preferences(prefs)
 
     def get_prefs_dialog_settings(self):
@@ -92,7 +81,7 @@ class Preferences:
             'x': prefs.get('prefs_dialog_x'),
             'y': prefs.get('prefs_dialog_y'),
             'width': prefs.get('prefs_dialog_width', 510),
-            'height': prefs.get('prefs_dialog_height', 215)
+            'height': prefs.get('prefs_dialog_height', 215),
         }
 
     def save_prefs_dialog_settings(self, x, y, width, height):
@@ -101,6 +90,6 @@ class Preferences:
             'prefs_dialog_x': x,
             'prefs_dialog_y': y,
             'prefs_dialog_width': width,
-            'prefs_dialog_height': height
+            'prefs_dialog_height': height,
         })
         self.save_preferences(prefs)

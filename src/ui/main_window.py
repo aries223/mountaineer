@@ -1,17 +1,26 @@
+import logging
+import os
+import shutil
+import threading
+import time
+
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QColor, QFontMetrics, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
-    QMainWindow, QMenuBar, QWidget, QVBoxLayout,
-    QHBoxLayout, QPushButton, QLabel, QProgressBar, QSizePolicy,
-    QTableWidget, QTableWidgetItem, QHeaderView, QFileDialog, QMenu
+    QApplication, QCheckBox, QFileDialog, QHBoxLayout, QHeaderView,
+    QLabel, QMainWindow, QMenu, QMenuBar, QMessageBox, QProgressBar,
+    QPushButton, QSizePolicy, QTableWidget, QTableWidgetItem,
+    QVBoxLayout, QWidget,
 )
-from PyQt6.QtCore import Qt  # Add QSize import
-from PyQt6.QtWidgets import QApplication  # Import QApplication for processEvents
-from PyQt6.QtGui import QFontMetrics  # Import QFontMetrics
+
 from compression.jpeg_compressor import JpegCompressor
 from compression.png_compressor import PngCompressor
+from utils.file_utils import get_file_format, get_file_size, get_image_dimensions
 from utils.preferences import Preferences
-from utils.file_utils import get_image_dimensions, get_file_size, get_file_format
-import os, time, threading
-from utils.signals import signals  # Import the custom signals
+from utils.signals import signals
+
+logger = logging.getLogger(__name__)
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -19,161 +28,155 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("Mountaineer")
 
-        # Initialize preferences and load settings
         self.preferences = Preferences()
         window_settings = self.preferences.get_main_window_settings()
 
-        pass  # Removed debug print statement
-
-        # Set initial window size and position based on saved preferences or defaults
         self.resize(window_settings['width'], window_settings['height'])
         if window_settings['x'] is not None and window_settings['y'] is not None:
-            self.move(window_settings['x'], window_settings['y'])
+            x, y = window_settings['x'], window_settings['y']
+            screen = QApplication.primaryScreen()
+            if screen and screen.availableGeometry().contains(x, y):
+                self.move(x, y)
 
-        # Initialize other components
         self.current_preferences = self.preferences.load_preferences()
         self.file_list = []
 
-        # Create the menu bar
+        # ── Menu bar ──────────────────────────────────────────────────────────
         self.menu_bar = QMenuBar(self)
         self.setMenuBar(self.menu_bar)
 
         # File menu
         file_menu = self.menu_bar.addMenu("File")
-        add_files_action = file_menu.addAction("Add Files...")
-        add_folder_action = file_menu.addAction("Add Folder...")
+        self.add_files_action = file_menu.addAction("Add Files...")
+        self.add_files_action.setShortcut(QKeySequence("Ctrl+O"))
+        self.add_folder_action = file_menu.addAction("Add Folder...")
         exit_action = file_menu.addAction("Exit")
+        exit_action.setShortcut(QKeySequence("Ctrl+Q"))
 
-        # Connect File menu actions
-        add_files_action.triggered.connect(self.add_files)
-        add_folder_action.triggered.connect(self.add_folder)  # This will call the updated method
+        self.add_files_action.triggered.connect(self.add_files)
+        self.add_folder_action.triggered.connect(self.add_folder)
         exit_action.triggered.connect(self.close)
 
         # Edit menu
-        self.edit_menu = self.menu_bar.addMenu("Edit")  # Store reference to this menu
-        remove_action = self.edit_menu.addAction("Remove")  # This will be dynamically updated
-        clear_action = self.edit_menu.addAction("Clear")
+        self.edit_menu = self.menu_bar.addMenu("Edit")
+        self.remove_action = self.edit_menu.addAction("Remove")
+        self.clear_action = self.edit_menu.addAction("Clear")
         select_all_action = self.edit_menu.addAction("Select All")
+        select_all_action.setShortcut(QKeySequence("Ctrl+A"))
         preferences_action = self.edit_menu.addAction("Preferences...")
+        preferences_action.setShortcut(QKeySequence("Ctrl+,"))
 
-        # Connect Edit menu actions
-        remove_action.triggered.connect(self.remove_selected_files)
-        clear_action.triggered.connect(self.clear_file_list)
+        self.remove_action.triggered.connect(self.remove_selected_files)
+        self.clear_action.triggered.connect(self.clear_file_list)
         select_all_action.triggered.connect(self.select_all_files)
         preferences_action.triggered.connect(self.show_preferences)
 
         # View menu
         view_menu = self.menu_bar.addMenu("View")
         statusbar_action = view_menu.addAction("Toggle Status Bar")
-
-        # Connect View menu actions
         statusbar_action.triggered.connect(self.toggle_status_bar)
 
         # Help menu
         help_menu = self.menu_bar.addMenu("Help")
         about_action = help_menu.addAction("About Mountaineer")
+        about_action.triggered.connect(self.show_about_dialog)
 
-        # Connect Help menu actions
-        about_action.triggered.connect(self.show_about_dialog)  # Updated to use separate method
-
-        # Create button bar with left alignment and adjusted widths
+        # ── Button bar ────────────────────────────────────────────────────────
         self.button_bar = QWidget()
         self.button_bar_layout = QHBoxLayout()
         self.button_bar.setLayout(self.button_bar_layout)
-        self.button_bar_layout.setContentsMargins(0, 0, 0, 0)  # Remove default margins
+        self.button_bar_layout.setContentsMargins(0, 0, 0, 0)
 
-        add_files_button = QPushButton("Add Files")
-        clear_list_button = QPushButton("Clear File List")
+        self.add_files_button = QPushButton("Add Files")
+        self.clear_list_button = QPushButton("Clear File List")
         preferences_button = QPushButton("Preferences")
 
-        add_files_button.clicked.connect(self.add_files)
-        clear_list_button.clicked.connect(self.clear_file_list)
+        self.add_files_button.clicked.connect(self.add_files)
+        self.clear_list_button.clicked.connect(self.clear_file_list)
         preferences_button.clicked.connect(self.show_preferences)
 
-        # Set button width based on text width with padding
-        self._set_button_width_with_padding(add_files_button, 40)  # 40 pixels padding
-        self._set_button_width_with_padding(clear_list_button, 40)
+        self._set_button_width_with_padding(self.add_files_button, 40)
+        self._set_button_width_with_padding(self.clear_list_button, 40)
         self._set_button_width_with_padding(preferences_button, 40)
 
-        # Add buttons to layout (left aligned with no stretching)
-        self.button_bar_layout.addWidget(add_files_button, alignment=Qt.AlignmentFlag.AlignLeft)
-        self.button_bar_layout.addSpacing(8)  # Fixed spacing between buttons
-        self.button_bar_layout.addWidget(clear_list_button, alignment=Qt.AlignmentFlag.AlignLeft)
-        self.button_bar_layout.addStretch()  # Add stretch at the end to push buttons to right
+        self.button_bar_layout.addWidget(self.add_files_button, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.button_bar_layout.addSpacing(8)
+        self.button_bar_layout.addWidget(self.clear_list_button, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.button_bar_layout.addStretch()
         self.button_bar_layout.addWidget(preferences_button, alignment=Qt.AlignmentFlag.AlignLeft)
 
-        # File list widget (as table) with drag-and-drop support
+        # ── File list table ───────────────────────────────────────────────────
         self.file_list_widget = QTableWidget()
         self.file_list_widget.setColumnCount(6)
         headers = ["File Name", "Format", "Dimensions", "Size", "Compressed", "Saved"]
         self.file_list_widget.setHorizontalHeaderLabels(headers)
+        self.file_list_widget.setSortingEnabled(True)
 
-        # Set column widths - File Name expands, others are interactive
         header = self.file_list_widget.horizontalHeader()
         for i in range(self.file_list_widget.columnCount()):
-            if i == 0:  # File Name column should expand
+            if i == 0:
                 header.setSectionResizeMode(i, QHeaderView.ResizeMode.Stretch)
-            else:  # Other columns are interactive width
+            else:
                 header.setSectionResizeMode(i, QHeaderView.ResizeMode.Interactive)
 
-        # Enable drag-and-drop for the file list widget
         self.file_list_widget.setAcceptDrops(True)
         self.file_list_widget.viewport().setAcceptDrops(True)
         self.file_list_widget.setDragDropMode(QTableWidget.DragDropMode.InternalMove)
 
-        # Add context menu for file removal
         self.file_list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.file_list_widget.customContextMenuRequested.connect(self.show_context_menu)
 
-        # Info widget
+        # Delete key removes selected rows (scoped to the table widget)
+        delete_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Delete), self.file_list_widget)
+        delete_shortcut.activated.connect(self.remove_selected_files)
+
+        # ── Info label ────────────────────────────────────────────────────────
         self.info_widget = QLabel("0 files")
         self.info_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
 
-        # Control widget with left alignment
+        # ── Control widget ────────────────────────────────────────────────────
         self.control_widget = QWidget()
         control_layout = QHBoxLayout()
-        control_layout.setContentsMargins(0, 0, 0, 0)  # Remove default margins
+        control_layout.setContentsMargins(0, 0, 0, 0)
 
-        compress_button = QPushButton("Compress Images")
+        self.compress_button = QPushButton("Compress Images")
         quit_button = QPushButton("Quit")
 
-        compress_button.clicked.connect(self.compress_images)
+        self.compress_button.clicked.connect(self.compress_images)
         quit_button.clicked.connect(self.close)
 
-        # Set button width based on text width with padding
-        self._set_button_style(compress_button)
+        self._set_button_style(self.compress_button)
         self._set_button_style(quit_button)
 
-        control_layout.addWidget(compress_button, alignment=Qt.AlignmentFlag.AlignLeft)  # Left aligned
-        control_layout.addStretch()  # Add stretch at the end to push buttons to right
+        control_layout.addWidget(self.compress_button, alignment=Qt.AlignmentFlag.AlignLeft)
+        control_layout.addStretch()
         control_layout.addWidget(quit_button, alignment=Qt.AlignmentFlag.AlignLeft)
         self.control_widget.setLayout(control_layout)
 
-        # Status bar
+        # ── Status bar ────────────────────────────────────────────────────────
         status_bar_widget = QWidget()
         status_bar_layout = QHBoxLayout()
 
         self.status_label = QLabel("Ready", self)
         self.status_bar_visible = True
 
-        # Progress bar - make it 40% of main window width and set maximum height
         self.progress_bar = QProgressBar(self)
         self.progress_bar.setRange(0, 100)
-        self.progress_bar.setMaximumHeight(int(self.height() * 0.015))  # Set to .015% of window height
+        self.progress_bar.setMaximumHeight(int(self.height() * 0.015))
 
-        status_bar_layout.addWidget(self.status_label, 60)  # Status takes 60%
-        status_bar_layout.addWidget(self.progress_bar, 40)  # Progress bar takes 40%
+        status_bar_layout.addWidget(self.status_label, 60)
+        status_bar_layout.addWidget(self.progress_bar, 40)
 
         self.status_bar_widget = status_bar_widget
         status_bar_widget.setLayout(status_bar_layout)
 
-        # Main layout
+        # ── Main layout ───────────────────────────────────────────────────────
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.menu_bar)
-        main_layout.addWidget(self.button_bar)  # Button bar takes full width
-        main_layout.addWidget(self.file_list_widget, stretch=1)  # File list takes full width and stretches
+        main_layout.addWidget(self.button_bar)
+        main_layout.addWidget(self.file_list_widget, stretch=1)
         main_layout.addWidget(self.info_widget)
-        main_layout.addWidget(self.control_widget)  # Control widget takes full width
+        main_layout.addWidget(self.control_widget)
 
         if self.status_bar_visible:
             main_layout.addWidget(status_bar_widget)
@@ -182,64 +185,101 @@ class MainWindow(QMainWindow):
         container.setLayout(main_layout)
         self.setCentralWidget(container)
 
-        # Connect signals to slots for thread-safe UI updates
+        # ── Signal connections ────────────────────────────────────────────────
         signals.progress_updated.connect(self._update_progress)
         signals.status_updated.connect(self._safe_update_status)
-        signals.compression_complete.connect(self._safe_update_status)
-        signals.compression_result_updated.connect(self._update_compression_result)  # New signal connection
+        signals.compression_complete.connect(self._on_compression_complete)
+        signals.compression_result_updated.connect(self._update_compression_result)
 
-        # Connect selection model to update menu text
-        self.file_list_widget.selectionModel().selectionChanged.connect(self._update_remove_menu_text)
+        self.file_list_widget.selectionModel().selectionChanged.connect(
+            self._update_remove_menu_text
+        )
+
+        # Warn about any missing tools on startup
+        self._check_tool_availability()
+
+    # ── Tool availability ─────────────────────────────────────────────────────
+
+    def _check_tool_availability(self):
+        """Check that jpegoptim and oxipng are installed; disable Compress if not."""
+        missing = [t for t in ("jpegoptim", "oxipng") if not shutil.which(t)]
+        if missing:
+            tool_list = " and ".join(missing)
+            install_hints = "\n".join(
+                f"  \u2022 {t}: sudo dnf install {t}  (or equivalent for your distro)"
+                for t in missing
+            )
+            QMessageBox.warning(
+                self,
+                "Missing Tools",
+                f"The following required tool(s) are not installed:\n\n{tool_list}\n\n"
+                f"Install them before compressing:\n{install_hints}",
+            )
+            self.compress_button.setEnabled(False)
+
+    def _set_compression_running(self, running):
+        """Enable or disable controls that must not be used during compression."""
+        enabled = not running
+        self.add_files_button.setEnabled(enabled)
+        self.clear_list_button.setEnabled(enabled)
+        self.add_files_action.setEnabled(enabled)
+        self.add_folder_action.setEnabled(enabled)
+        self.remove_action.setEnabled(enabled)
+        self.clear_action.setEnabled(enabled)
+        # Disable table sorting so row indices remain stable during compression
+        self.file_list_widget.setSortingEnabled(enabled)
+        if enabled:
+            # Re-enable Compress only when all tools are present
+            if shutil.which("jpegoptim") and shutil.which("oxipng"):
+                self.compress_button.setEnabled(True)
+        else:
+            self.compress_button.setEnabled(False)
+
+    # ── Button / layout helpers ────────────────────────────────────────────────
 
     def _set_button_style(self, button):
-        """Set consistent style for all buttons"""
+        """Set consistent style for control-row buttons."""
         font_metrics = QFontMetrics(QApplication.font())
         text_width = font_metrics.horizontalAdvance(button.text())
-        total_width = max(text_width + 40, 120)  # Minimum width of 120 pixels
+        total_width = max(text_width + 40, 120)
         button.setMinimumWidth(total_width)
         button.setMaximumWidth(total_width)
 
     def _set_button_width_with_padding(self, button, padding):
-        """Set button width based on text width with additional padding"""
+        """Set button width based on text width plus padding on each side."""
         font_metrics = QFontMetrics(QApplication.font())
         text_width = font_metrics.horizontalAdvance(button.text())
-        total_width = max(text_width + padding * 2, 120)  # Add padding on both sides and minimum width of 120 pixels
+        total_width = max(text_width + padding * 2, 120)
         button.setMinimumWidth(total_width)
         button.setMaximumWidth(total_width)
 
     def update_status_bar_layout(self):
-        """Ensure proper status bar alignment"""
+        """Ensure proper status bar alignment."""
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self.progress_bar.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
+    # ── Window events ──────────────────────────────────────────────────────────
+
     def closeEvent(self, event):
-        """Save main window position and size when closing"""
-        pass  # Removed debug print statement
+        """Save main window position and size when closing."""
         self.preferences.save_main_window_settings(
-            self.x(),
-            self.y(),
-            self.width(),
-            self.height()
+            self.x(), self.y(), self.width(), self.height()
         )
         super().closeEvent(event)
 
+    # ── Drag-and-drop ──────────────────────────────────────────────────────────
+
     def dragEnterEvent(self, event):
-        """Handle drag enter events"""
+        """Accept drag events that contain files or directories."""
         if event.mimeData().hasUrls():
             urls = [url.toLocalFile() for url in event.mimeData().urls()]
-            # Accept files and directories
-            accepted = any(
-                os.path.isfile(url) or
-                (os.path.isdir(url) and any(os.path.isfile(os.path.join(url, f)) for f in os.listdir(url)))
-                for url in urls
-            )
-            if accepted:
+            if any(os.path.isfile(u) or os.path.isdir(u) for u in urls):
                 event.acceptProposedAction()
         else:
             event.ignore()
 
     def dropEvent(self, event):
-        """Handle drop events"""
+        """Handle drop events, recursing into dropped directories."""
         if not event.mimeData().hasUrls():
             event.ignore()
             return
@@ -247,7 +287,6 @@ class MainWindow(QMainWindow):
         urls = [url.toLocalFile() for url in event.mimeData().urls()]
         processed_files = 0
         skipped_files = 0
-        total_urls = len(urls)
 
         for url in urls:
             try:
@@ -258,82 +297,69 @@ class MainWindow(QMainWindow):
                     else:
                         skipped_files += is_skipped
                 elif os.path.isdir(url):
-                    # Process directory contents
-                    dir_files_processed = 0
-                    dir_skipped_files = 0
-
-                    for file_name in os.listdir(url):
-                        file_path = os.path.join(url, file_name)
-                        if os.path.isfile(file_path):
+                    for root, dirs, files in os.walk(url):
+                        for file_name in files:
+                            file_path = os.path.join(root, file_name)
                             success, is_skipped = self._try_add_file_to_list(file_path)
                             if success:
-                                dir_files_processed += 1
+                                processed_files += 1
                             else:
-                                dir_skipped_files += is_skipped
-
-                    pass  # Removed debug print statement
-                    processed_files += dir_files_processed
-                    skipped_files += dir_skipped_files
+                                skipped_files += is_skipped
                 else:
-                    pass  # Removed debug print statement
                     skipped_files += 1
-
             except Exception as e:
-                pass  # Removed debug print statement
+                logger.warning("Error processing dropped URL %s: %s", url, e)
                 skipped_files += 1
                 continue
 
-        # Update progress information based on actual successful additions and skips
         if processed_files > 0 or skipped_files > 0:
             message = f"{processed_files} files added to the list"
             if skipped_files > 0:
                 message += f", {skipped_files} incompatible files skipped"
-
             self.status_label.setText(message)
         else:
             self.status_label.setText("No valid files found in drop")
 
         event.acceptProposedAction()
 
+    # ── File list helpers ──────────────────────────────────────────────────────
+
     def _is_supported_image(self, file_path):
-        """Check if a file is a supported image format"""
+        """Return True if the file is a supported image format (JPEG or PNG)."""
         try:
-            format_str = get_file_format(file_path)
-            return format_str in ["JPEG", "PNG"]
+            return get_file_format(file_path) in ("JPEG", "PNG")
         except Exception as e:
-            pass  # Removed debug print statement
+            logger.warning("Could not determine format for %s: %s", file_path, e)
             return False
 
     def _try_add_file_to_list(self, file_path):
-        """Try to add a file to the list and return success status"""
+        """Try to add a file to the list.
+
+        Returns a (success, is_skipped) tuple where is_skipped is 1 when the
+        file is rejected (wrong format or invalid path) and 0 on success.
+        """
         if not os.path.isfile(file_path):
-            pass  # Removed debug print statement
-            return False, True  # Skipped due to invalid path
+            return False, 1
 
         try:
             format_str = get_file_format(file_path)
-            supported_formats = ["JPEG", "PNG"]
-            if format_str not in supported_formats:
-                pass  # Removed debug print statement
-                return False, True  # Skipped due to unsupported format
+            if format_str not in ("JPEG", "PNG"):
+                return False, 1
 
-            # File is valid, proceed with adding
             success = self.add_file_to_list(file_path)
-            return success, False  # Successfully processed
-
+            return success, 0
         except Exception as e:
-            pass  # Removed debug print statement
-            import traceback
-            traceback.print_exc()
-            return False, True  # Skipped due to error
+            logger.exception("Error adding file %s", file_path)
+            return False, 1
 
     def add_files(self):
+        """Open a file dialog and add selected image files to the list."""
         files, _ = QFileDialog.getOpenFileNames(
             self, "Add Files", "", "Image Files (*.jpg *.jpeg *.png);;All Files (*)"
         )
         if files:
             added_count = 0
-            skipped_count = 0  # Use consistent variable name
+            skipped_count = 0
 
             for file_path in files:
                 success, is_skipped = self._try_add_file_to_list(file_path)
@@ -343,22 +369,22 @@ class MainWindow(QMainWindow):
                     skipped_count += is_skipped
 
             message = f"Added {added_count} files to the list"
-            if skipped_count > 0:  # Use consistent variable name
+            if skipped_count > 0:
                 message += f", {skipped_count} incompatible files skipped"
-
             self.status_label.setText(message)
 
     def add_folder(self):
+        """Open a folder dialog and recursively add supported images to the list."""
         folder_path = QFileDialog.getExistingDirectory(
             self, "Add Folder", "", QFileDialog.Option.ShowDirsOnly
         )
         if folder_path:
             added_count = 0
-            skipped_count = 0  # Use consistent variable name
+            skipped_count = 0
 
-            for file_name in os.listdir(folder_path):
-                file_path = os.path.join(folder_path, file_name)
-                if os.path.isfile(file_path) and self._is_supported_image(file_path):
+            for root, dirs, files in os.walk(folder_path):
+                for file_name in files:
+                    file_path = os.path.join(root, file_name)
                     success, is_skipped = self._try_add_file_to_list(file_path)
                     if success:
                         added_count += 1
@@ -366,359 +392,363 @@ class MainWindow(QMainWindow):
                         skipped_count += is_skipped
 
             message = f"Added {added_count} files from folder to the list"
-            if skipped_count > 0:  # Use consistent variable name
+            if skipped_count > 0:
                 message += f", {skipped_count} incompatible files skipped"
-
             self.status_label.setText(message)
 
     def add_file_to_list(self, file_path):
-        """Actual implementation of adding a valid file to the list"""
-        pass  # Removed debug print statement
-
+        """Add a validated image file to the table widget and internal list."""
         try:
-            # Get file information
             format_str = get_file_format(file_path)
             dimensions = get_image_dimensions(file_path)
             size = get_file_size(file_path)
 
-            # Add to list
+            # Disable sorting while inserting so row positions are predictable
+            self.file_list_widget.setSortingEnabled(False)
+
             row_count = self.file_list_widget.rowCount()
             self.file_list_widget.insertRow(row_count)
 
-            # File Name column (left-aligned)
             file_name_item = QTableWidgetItem(os.path.basename(file_path))
             file_name_item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            # Store the full path so we can look up files after sorting
+            file_name_item.setData(Qt.ItemDataRole.UserRole, file_path)
             self.file_list_widget.setItem(row_count, 0, file_name_item)
 
-            # Other columns (right-aligned)
-            format_item = QTableWidgetItem(format_str)
-            format_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            self.file_list_widget.setItem(row_count, 1, format_item)
+            for col, text in enumerate((format_str, dimensions, size, "", ""), start=1):
+                item = QTableWidgetItem(text)
+                item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+                self.file_list_widget.setItem(row_count, col, item)
 
-            dimensions_item = QTableWidgetItem(dimensions)
-            dimensions_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            self.file_list_widget.setItem(row_count, 2, dimensions_item)
-
-            size_item = QTableWidgetItem(size)
-            size_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            self.file_list_widget.setItem(row_count, 3, size_item)
-
-            # Empty compressed and saved columns initially (right-aligned)
-            compressed_item = QTableWidgetItem("")
-            compressed_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            self.file_list_widget.setItem(row_count, 4, compressed_item)
-
-            saved_item = QTableWidgetItem("")
-            saved_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            self.file_list_widget.setItem(row_count, 5, saved_item)
-
-            # Store file path in item data for later use
-            file_name_item.setData(Qt.ItemDataRole.UserRole, file_path)
-
-            # Add to internal list
             self.file_list.append(file_path)
 
-            pass  # Removed debug print statement
-
-            # Update info widget and reset progress bar
+            self.file_list_widget.setSortingEnabled(True)
             self.update_info_widget()
             self.reset_progress_bar()
 
             return True
 
         except Exception as e:
-            pass  # Removed debug print statement
-            import traceback
-            traceback.print_exc()
+            logger.exception("Failed to add file to list: %s", file_path)
+            self.file_list_widget.setSortingEnabled(True)
             return False
 
     def clear_file_list(self):
-        # Clean up any cached temporary files
-        if hasattr(self, '_temp_preview_file') and os.path.exists(getattr(self, '_temp_preview_file', '')):
-            os.unlink(getattr(self, '_temp_preview_file', ''))
-
+        """Clear all files from the table and internal list."""
         self.file_list_widget.setRowCount(0)
         self.file_list = []
-        if hasattr(self, '_current_preview_file'):
-            del self._current_preview_file
-        if hasattr(self, '_temp_preview_file'):
-            del self._temp_preview_file
-
-        # Update info widget and reset progress bar AND status label
         self.update_info_widget()
         self.reset_progress_bar()
-        self.status_label.setText("Ready")  # Reset status bar text
+        self.status_label.setText("Ready")
 
     def update_info_widget(self):
+        """Update the file count label."""
         try:
-            if len(self.file_list) == 0:
-                self.info_widget.setText("0 files")
-                return
-
-            self.info_widget.setText(f"{len(self.file_list)} files")
-
-        except Exception as e:
-            pass  # Removed debug print statement
-            import traceback
-            traceback.print_exc()
+            count = len(self.file_list)
+            self.info_widget.setText(f"{count} file{'s' if count != 1 else ''}")
+        except Exception:
+            logger.exception("Error updating info widget")
             self.info_widget.setText("Error calculating file count")
 
     def show_preferences(self):
+        """Show the Preferences dialog."""
         from ui.preferences_dialog import PreferencesDialog
         dialog = PreferencesDialog()
 
-        # Load preferences dialog settings
         window_settings = self.preferences.get_prefs_dialog_settings()
-
-        pass  # Removed debug print statement
-
-        # Set default size but allow resizing
         dialog.resize(window_settings['width'], window_settings['height'])
         if window_settings['x'] is not None and window_settings['y'] is not None:
-            dialog.move(window_settings['x'], window_settings['y'])
+            x, y = window_settings['x'], window_settings['y']
+            screen = QApplication.primaryScreen()
+            if screen and screen.availableGeometry().contains(x, y):
+                dialog.move(x, y)
 
         dialog.load_preferences()
 
         if dialog.exec():
-            # Reload preferences after saving AND update current preferences immediately
             self.current_preferences = dialog.current_preferences
 
+    # ── Compression ────────────────────────────────────────────────────────────
+
     def compress_images(self):
+        """Start background compression of all files in the list."""
         if not self.file_list:
             signals.status_updated.emit("Error: No files selected")
             return
 
+        # Optional one-time overwrite warning
+        if self.current_preferences.get('warn_before_overwrite', True):
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Icon.Warning)
+            msg.setWindowTitle("Overwrite Warning")
+            msg.setText(
+                "Files will be compressed and overwritten in place.\n"
+                "This cannot be undone."
+            )
+            msg.setStandardButtons(
+                QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel
+            )
+            dont_show = QCheckBox("Don't show again")
+            msg.setCheckBox(dont_show)
+
+            result = msg.exec()
+            if result == QMessageBox.StandardButton.Cancel:
+                return
+
+            if dont_show.isChecked():
+                prefs = self.preferences.load_preferences()
+                prefs['warn_before_overwrite'] = False
+                self.preferences.save_preferences(prefs)
+                self.current_preferences['warn_before_overwrite'] = False
+
         total_files = len(self.file_list)
         signals.status_updated.emit(f"Starting compression of {total_files} files...")
-
-        # Reset progress bar before starting compression
         self.progress_bar.setValue(0)
 
-        # Start compression in a separate thread
+        # Snapshot all table data before spawning the thread so the worker
+        # never touches live UI widgets (not thread-safe).
+        snapshot = []
+        for i, file_path in enumerate(self.file_list):
+            size_item = self.file_list_widget.item(i, 3)
+            snapshot.append({
+                'path': file_path,
+                'original_size_text': size_item.text() if size_item else "0 B",
+                'row_index': i,
+            })
+
+        self._set_compression_running(True)
+
         compression_thread = threading.Thread(
             target=self._run_compression,
-            args=(self.file_list.copy(), total_files)
+            args=(snapshot, total_files),
+            daemon=True,
         )
         compression_thread.start()
 
     def _update_progress(self, progress):
-        """Update progress bar safely from main thread"""
+        """Update progress bar safely from the main thread."""
         self.progress_bar.setValue(progress)
 
     def _safe_update_status(self, message):
-        """Update status label in a thread-safe manner"""
+        """Update status label in a thread-safe manner via signal."""
         if not self.isVisible():
-            return  # Application is closing
-
+            return
         try:
             self.status_label.setText(message)
-            QApplication.processEvents()  # Process pending events to update UI immediately
+            QApplication.processEvents()
         except RuntimeError:
-            pass  # Removed debug print statement
+            pass
 
-    def _run_compression(self, file_list, total_files):
-        """Run compression operations in a separate thread"""
-        start_time = time.time()  # Track start time
-        completed_files = 0
+    def _on_compression_complete(self, message):
+        """Handle the compression_complete signal: update status and re-enable controls."""
+        self._safe_update_status(message)
+        self._set_compression_running(False)
 
-        for index, file_path in enumerate(file_list):
+    def _run_compression(self, snapshot, total_files):
+        """Compress files in a worker thread.
+
+        Reads exclusively from the pre-built snapshot — never from live UI
+        widgets. Emits signals for every UI update so all widget changes
+        happen on the main thread.
+        """
+        start_time = time.time()
+        success_count = 0
+        fail_count = 0
+
+        for processed, file_info in enumerate(snapshot):
+            file_path = file_info['path']
+            original_size_text = file_info['original_size_text']
+            row_index = file_info['row_index']
+            filename = os.path.basename(file_path)
+
             try:
-                format_str = get_file_format(file_path)
-                filename = os.path.basename(file_path)
-
-                if format_str == "JPEG":
-                    compressor = JpegCompressor()
-                    output_path = None
-
-                    success = compressor.compress_file(
-                        file_path,
-                        output_path,
-                        lossless=self.current_preferences['lossless_compression'],
-                        strip_metadata=self.current_preferences['strip_metadata'],
-                        jpeg_quality=self.current_preferences['jpeg_compression_level']
-                    )
-
-                elif format_str == "PNG":
-                    compressor = PngCompressor()
-                    output_path = None
-
-                    success = compressor.compress_file(
-                        file_path,
-                        output_path,
-                        lossless=self.current_preferences['lossless_compression'],
-                        strip_metadata=self.current_preferences['strip_metadata'],
-                        png_quality=self.current_preferences['png_compression_level']
-                    )
+                if not os.path.isfile(file_path):
+                    signals.status_updated.emit(f"Skipped: {filename} no longer exists")
+                    fail_count += 1
                 else:
-                    pass  # Removed debug print statement
-                    signals.status_updated.emit(f"Warning: {filename} skipped due to unsupported format")
-                    continue
+                    format_str = get_file_format(file_path)
 
-                if success:
-                    # Update compressed size in UI
-                    try:
-                        original_size_text = self.file_list_widget.item(index, 3).text()
-                        original_size_mb = self._convert_to_mb(original_size_text)
-                        compressed_size = get_file_size(file_path)
-                        compressed_size_mb = self._convert_to_mb(compressed_size)
+                    if format_str == "JPEG":
+                        compressor = JpegCompressor()
+                        success = compressor.compress_file(
+                            file_path,
+                            None,
+                            lossless=self.current_preferences['lossless_compression'],
+                            strip_metadata=self.current_preferences['strip_metadata'],
+                            jpeg_quality=self.current_preferences['jpeg_compression_level'],
+                        )
+                    elif format_str == "PNG":
+                        compressor = PngCompressor()
+                        success = compressor.compress_file(
+                            file_path,
+                            None,
+                            lossless=self.current_preferences['lossless_compression'],
+                            strip_metadata=self.current_preferences['strip_metadata'],
+                            png_quality=self.current_preferences['png_compression_level'],
+                        )
+                    else:
+                        signals.status_updated.emit(
+                            f"Warning: {filename} skipped (unsupported format)"
+                        )
+                        fail_count += 1
+                        compressor = None
+                        success = False
 
-                        compression_saving = ((original_size_mb - compressed_size_mb) / original_size_mb) * 100
+                    if compressor is not None:
+                        if success:
+                            try:
+                                original_size_mb = self._convert_to_mb(original_size_text)
+                                compressed_size = get_file_size(file_path)
+                                compressed_size_mb = self._convert_to_mb(compressed_size)
 
-                        # Emit signal to update UI with compressed size and savings percentage
-                        signals.compression_result_updated.emit(index, compressed_size, compression_saving)
+                                if original_size_mb > 0:
+                                    saving_pct = (
+                                        (original_size_mb - compressed_size_mb)
+                                        / original_size_mb
+                                        * 100
+                                    )
+                                else:
+                                    saving_pct = 0.0
 
-                    except Exception as e:
-                        pass  # Removed debug print statement
-                else:
-                    signals.status_updated.emit(f"Failed to compress: {filename} - Check if file exists")
+                                signals.compression_result_updated.emit(
+                                    row_index, compressed_size, saving_pct
+                                )
+                            except Exception:
+                                logger.exception(
+                                    "Error calculating savings for %s", filename
+                                )
+                            success_count += 1
+                        else:
+                            error_msg = compressor.last_error or "unknown error"
+                            signals.status_updated.emit(
+                                f"Failed: {filename} \u2014 {error_msg}"
+                            )
+                            fail_count += 1
 
-                completed_files += 1
-                progress = int((completed_files / total_files) * 100)
-
-                # Emit signal instead of direct UI update
-                signals.progress_updated.emit(progress)
-                time.sleep(0.01)  # Small delay to prevent overwhelming the UI
-
-            except Exception as e:
-                pass  # Removed debug print statement
+            except Exception:
+                logger.exception("Unexpected error processing %s", filename)
                 signals.status_updated.emit(f"Error processing: {filename}")
+                fail_count += 1
 
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-        average_speed = completed_files / elapsed_time if elapsed_time > 0 else 0
+            progress = int(((processed + 1) / total_files) * 100)
+            signals.progress_updated.emit(progress)
+            time.sleep(0.01)
 
-        success_message = f"All images compressed successfully. " if completed_files == total_files else "Some files failed to compress. "
-        performance_message = f"{elapsed_time:.2f} seconds (avg: {average_speed:.2f} files/sec)"
+        elapsed = time.time() - start_time
+        avg_speed = total_files / elapsed if elapsed > 0 else 0
 
-        signals.compression_complete.emit(success_message + performance_message)
-        self.progress_bar.setValue(100)
+        if fail_count == 0:
+            result_msg = f"All {success_count} files compressed successfully."
+        else:
+            result_msg = (
+                f"{success_count}/{total_files} files compressed. {fail_count} failed."
+            )
+
+        signals.compression_complete.emit(
+            f"{result_msg} {elapsed:.2f}s (avg: {avg_speed:.2f} files/sec)"
+        )
 
     def _convert_to_mb(self, size_str):
-        """Convert size string to MB for consistent comparison"""
+        """Convert a human-readable size string (e.g. '1.23 MB') to float MB."""
         try:
             if not size_str or size_str == "N/A":
                 return 0
-
-            # Extract numeric value and unit
             parts = size_str.split()
             value = float(parts[0])
-
-            # Convert to MB based on unit
             if 'KB' in size_str:
                 return value / 1024
             elif 'MB' in size_str:
                 return value
             elif 'GB' in size_str:
                 return value * 1024
-            else:  # Default to bytes
+            else:
                 return value / (1024 * 1024)
-        except Exception as e:
-            pass  # Removed debug print statement
+        except Exception:
+            logger.warning("Could not parse size string '%s'", size_str)
             return 0
 
-    def _update_compression_result(self, index, compressed_size, saving_percentage):
-        """Update the UI with compression results"""
-        if 0 <= index < self.file_list_widget.rowCount():
-            # Update "Compressed" column
+    def _update_compression_result(self, row_index, compressed_size, saving_percentage):
+        """Update the table row with compression results for a single file."""
+        if 0 <= row_index < self.file_list_widget.rowCount():
             compressed_item = QTableWidgetItem(f"{compressed_size}")
             compressed_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            self.file_list_widget.setItem(index, 4, compressed_item)
+            self.file_list_widget.setItem(row_index, 4, compressed_item)
 
-            # Update "Saved" column with savings percentage (ensure it's non-negative)
-            saved_percentage = max(0.0, saving_percentage)  # Ensure non-negative
-            saved_item = QTableWidgetItem(f"{saved_percentage:.2f}%")
+            saved_item = QTableWidgetItem(f"{saving_percentage:.2f}%")
             saved_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            self.file_list_widget.setItem(index, 5, saved_item)
+            if saving_percentage < 0:
+                saved_item.setForeground(QColor(200, 0, 0))
+            self.file_list_widget.setItem(row_index, 5, saved_item)
 
-            # Ensure UI updates happen in the main thread
             QApplication.processEvents()
 
+    # ── File selection / removal ───────────────────────────────────────────────
+
     def remove_selected_files(self):
-        """Remove selected files from the file list"""
-        # Get all selected rows (unique rows based on row number)
-        selected_rows = set()
-        for item in self.file_list_widget.selectedItems():
-            selected_rows.add(item.row())
-
+        """Remove all selected rows from the file list."""
+        selected_rows = {item.row() for item in self.file_list_widget.selectedItems()}
         if not selected_rows:
-            return  # No selection, do nothing
+            return
 
-        # Remove selected items in reverse order to maintain proper indexing
         for row in sorted(selected_rows, reverse=True):
-            removed_file = self.file_list.pop(row)
+            self.file_list.pop(row)
             self.file_list_widget.removeRow(row)
 
-        # Update info widget and reset progress bar
         self.update_info_widget()
         self.reset_progress_bar()
 
     def _update_remove_menu_text(self):
-        """Update the 'Remove' menu text based on current selection"""
-        selected_rows = set()
-        for item in self.file_list_widget.selectedItems():
-            selected_rows.add(item.row())
-
-        if len(selected_rows) == 0:
-            self.edit_menu.actions()[0].setText("Remove")
-        elif len(selected_rows) == 1:
-            self.edit_menu.actions()[0].setText("Remove File")
+        """Update the 'Remove' menu entry text based on current selection."""
+        selected_rows = {item.row() for item in self.file_list_widget.selectedItems()}
+        n = len(selected_rows)
+        if n == 0:
+            self.remove_action.setText("Remove")
+        elif n == 1:
+            self.remove_action.setText("Remove File")
         else:
-            self.edit_menu.actions()[0].setText(f"Remove {len(selected_rows)} Files")
+            self.remove_action.setText(f"Remove {n} Files")
 
     def select_all_files(self):
-        """Select all files in the file list"""
+        """Select all rows in the file list."""
         for row in range(self.file_list_widget.rowCount()):
-            item = self.file_list_widget.item(row, 0)  # Get first column item (File Name)
+            item = self.file_list_widget.item(row, 0)
             if item:
                 item.setSelected(True)
 
     def toggle_status_bar(self):
-        """Toggle visibility of the status bar"""
+        """Toggle visibility of the status bar."""
         self.status_bar_visible = not self.status_bar_visible
         self.status_label.setVisible(self.status_bar_visible)
         self.progress_bar.setVisible(self.status_bar_visible)
 
     def show_about_dialog(self):
-        """Show About Mountaineer dialog"""
-        from ui.about import AboutDialog  # Import the new About dialog class
+        """Show the About Mountaineer dialog."""
+        from ui.about import AboutDialog
         about_dialog = AboutDialog()
         about_dialog.exec()
 
     def show_context_menu(self, position):
-        """Show context menu for file removal"""
-        if not self.file_list_widget.selectedItems():
-            return  # No selection, do nothing
-
-        # Get all selected rows (unique based on row number)
-        selected_rows = set()
-        for item in self.file_list_widget.selectedItems():
-            selected_rows.add(item.row())
-
+        """Show a right-click context menu for removing files."""
+        selected_rows = {item.row() for item in self.file_list_widget.selectedItems()}
         if not selected_rows:
-            return  # No selection, do nothing
+            return
 
         menu = QMenu(self)
-        remove_action = menu.addAction(f"Remove {'Selected Files' if len(selected_rows) > 1 else 'File'}")
+        label = "Remove Selected Files" if len(selected_rows) > 1 else "Remove File"
+        remove_action = menu.addAction(label)
 
         action = menu.exec(self.file_list_widget.viewport().mapToGlobal(position))
-
         if action == remove_action:
-            self.remove_selected_files()  # Reuse the updated method for removing multiple files
+            self.remove_selected_files()
 
     def remove_file_from_list(self, row):
-        """Remove file from list and update UI"""
+        """Remove a single file by row index."""
         if 0 <= row < len(self.file_list):
-            # Remove from internal list first
-            removed_file = self.file_list.pop(row)
-            pass  # Removed debug print statement
-
-            # Remove from widget
+            self.file_list.pop(row)
             self.file_list_widget.removeRow(row)
-
-            # Update info widget and reset progress bar
             self.update_info_widget()
             self.reset_progress_bar()
 
     def reset_progress_bar(self):
-        """Reset the progress bar to 0%"""
+        """Reset the progress bar to 0%."""
         self.progress_bar.setValue(0)

@@ -1,14 +1,19 @@
-from PyQt6.QtWidgets import QMessageBox, QDialog, QVBoxLayout, QLabel, QWidget
-from PyQt6.QtGui import QPixmap  # Import for handling images
-from PyQt6.QtCore import Qt, QUrl  # Import Qt for alignment and QUrl for URLs
+import logging
 import os
+
+from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtGui import QPixmap
+from PyQt6.QtWidgets import QDialog, QLabel, QVBoxLayout
+
+logger = logging.getLogger(__name__)
+
 
 class ClickableLabel(QLabel):
     def __init__(self, text, url, parent=None):
         super().__init__(text, parent)
         self.url = url
-        self.setOpenExternalLinks(False)  # Disable automatic link handling
-        self.setTextFormat(Qt.TextFormat.RichText)  # Enable rich text formatting
+        self.setOpenExternalLinks(False)
+        self.setTextFormat(Qt.TextFormat.RichText)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -17,6 +22,7 @@ class ClickableLabel(QLabel):
         else:
             super().mousePressEvent(event)
 
+
 class AboutDialog(QDialog):
     def __init__(self):
         super().__init__()
@@ -24,18 +30,21 @@ class AboutDialog(QDialog):
 
         layout = QVBoxLayout()
 
-        # Direct path for the logo image
-        logo_path = '/usr/share/pixmaps/mountaineer.png'
+        # Try installed path first, then fall back to the source-relative logo
+        logo_candidates = [
+            '/usr/share/pixmaps/mountaineer.png',
+            os.path.join(os.path.dirname(__file__), 'logo', 'mountaineer.png'),
+        ]
+        logo_path = next((p for p in logo_candidates if os.path.exists(p)), None)
 
-        # Display logo if found with proper error handling
-        if os.path.exists(logo_path):
+        if logo_path:
             try:
                 logo_label = QLabel()
                 pixmap = QPixmap(logo_path)
-                logo_label.setPixmap(pixmap.scaledToHeight(300))  # Scale logo height to 100 pixels
-                layout.addWidget(logo_label, alignment=Qt.AlignmentFlag.AlignCenter)  # Center align the logo
+                logo_label.setPixmap(pixmap.scaledToHeight(300))
+                layout.addWidget(logo_label, alignment=Qt.AlignmentFlag.AlignCenter)
             except Exception:
-                pass  # Handle exception without printing debug info
+                logger.warning("Failed to load logo from %s", logo_path)
 
         about_text = """
 <center><h1>Mountaineer</h1>
@@ -46,17 +55,15 @@ photographers and designers.<br/>
 """
 
         text_label = QLabel(about_text)
-        text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Center align the text
+        text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(text_label)
 
-        # Create a clickable GitHub label with HTML styling for link appearance
         github_url = QUrl("https://github.com/aries223/mountaineer")
         github_label = ClickableLabel(
             '<a href="#" style="color: #2a83d9">GitHub</a>',
-            github_url
+            github_url,
         )
-        github_label.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Center align the text
-
+        github_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(github_label)
 
         self.setLayout(layout)

@@ -1,22 +1,27 @@
 from .base_compressor import BaseCompressor
 
+
 class JpegCompressor(BaseCompressor):
     def __init__(self):
         super().__init__()
 
     def compress_file(self, input_path, output_path=None, lossless=False,
                      strip_metadata=False, jpeg_quality=None):
+        """Compress a JPEG file using jpegoptim.
+
+        In lossless mode, performs a lossless repack using --optimize and
+        --all-progressive without re-encoding. In lossy mode, uses -m<quality>
+        to set the output quality (0–100).
+        """
         if jpeg_quality is None and not lossless:
             raise ValueError("jpeg_quality must be provided for non-lossless compression")
 
         cmd = ["jpegoptim"]
 
-        if not lossless:
-            # Normal (not lossless) compression
-            cmd.extend(["-f", f"-m{int(jpeg_quality)}"])
+        if lossless:
+            cmd.extend(["--optimize", "--all-progressive"])
         else:
-            # Lossless - do nothing
-            return True
+            cmd.extend(["-f", f"-m{int(jpeg_quality)}"])
 
         if strip_metadata:
             cmd.append("--strip-all")

@@ -1,18 +1,23 @@
 from .base_compressor import BaseCompressor
 
+
 class PngCompressor(BaseCompressor):
     def __init__(self):
         super().__init__()
 
     def compress_file(self, input_path, output_path=None, lossless=False,
                      strip_metadata=False, png_quality=None, is_rgba=False):
+        """Compress a PNG file using oxipng.
+
+        In lossless mode, uses -omax -Z --fast for maximum lossless compression.
+        In normal mode, uses -o<level> where level 0 is highest compression and
+        6 is fastest (lowest compression).
+        """
         cmd = ["oxipng"]
 
         if lossless:
-            # Lossless (long time, not recommended)
             cmd.extend(["-omax", "-Z", "--fast"])
         else:
-            # Default normal compression
             if png_quality is None:
                 raise ValueError("png_quality must be provided for non-lossless compression")
             cmd.extend([f"-o{int(png_quality)}", "-f", "0-9"])
