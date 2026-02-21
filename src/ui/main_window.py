@@ -4,8 +4,8 @@ import shutil
 import threading
 import time
 
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QColor, QFontMetrics, QKeySequence, QShortcut
+from PyQt6.QtCore import Qt, QTimer, QUrl
+from PyQt6.QtGui import QColor, QDesktopServices, QFontMetrics, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QApplication, QCheckBox, QFileDialog, QHBoxLayout, QHeaderView,
     QLabel, QMainWindow, QMenu, QMenuBar, QMessageBox, QProgressBar,
@@ -85,7 +85,10 @@ class MainWindow(QMainWindow):
 
         # Help menu
         help_menu = self.menu_bar.addMenu("Help")
+        documentation_action = help_menu.addAction("Documentation")
+        help_menu.addSeparator()
         about_action = help_menu.addAction("About Mountaineer")
+        documentation_action.triggered.connect(self.open_documentation)
         about_action.triggered.connect(self.show_about_dialog)
 
         # ── Button bar ────────────────────────────────────────────────────────
@@ -743,6 +746,11 @@ class MainWindow(QMainWindow):
         self.status_bar_visible = not self.status_bar_visible
         # Hide/show the whole container so the layout reclaims the space.
         self.status_bar_widget.setVisible(self.status_bar_visible)
+
+    def open_documentation(self) -> None:
+        """Open the Mountaineer documentation in the default system browser."""
+        url = QUrl("https://github.com/aries223/mountaineer/blob/main/Documentation/Documentation.md")
+        QDesktopServices.openUrl(url)
 
     def show_about_dialog(self):
         """Show the About Mountaineer dialog."""
