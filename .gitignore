@@ -61,6 +61,9 @@ ENV/
 # Vscode
 .vscode/
 
-# Mine - remove me eventually
+# Mine
 backup/
 dist/
+CLAUDE.md
+working-docs/
+*.spec
