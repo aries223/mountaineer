@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git log:*)",
+      "Bash(npm run build:*)",
+      "Bash(docker compose exec:*)",
+      "Bash(docker compose logs:*)",
+      "Bash(python -m py_compile:*)",
+      "Bash(alembic check:*)",
+      "Bash(alembic current:*)",
+      "Bash(mypy:*)",
+      "Bash(docker compose ps:*)",
+      "Bash(docker compose:*)",
+      "Bash(npm run lint)",
+      "Bash(test:*)",
+      "Bash(npx tsc:*)",
+      "Bash(alembic revision:*)"
+    ]
+  }
+}

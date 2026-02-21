@@ -66,4 +66,3 @@ backup/
 dist/
 CLAUDE.md
 working-docs/
-*.spec
