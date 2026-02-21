@@ -13,8 +13,10 @@ from PyQt6.QtWidgets import (
     QVBoxLayout, QWidget,
 )
 
+from compression.gif_compressor import GifCompressor
 from compression.jpeg_compressor import JpegCompressor
 from compression.png_compressor import PngCompressor
+from compression.webp_compressor import WebpCompressor
 from utils.file_utils import get_file_format, get_file_size, get_image_dimensions
 from utils.preferences import Preferences
 from utils.signals import signals
@@ -212,8 +214,11 @@ class MainWindow(QMainWindow):
     # ── Tool availability ─────────────────────────────────────────────────────
 
     def _check_tool_availability(self):
-        """Check that jpegoptim and oxipng are installed; disable Compress if not."""
-        missing = [t for t in ("jpegoptim", "oxipng") if not shutil.which(t)]
+        """Check that jpegoptim, oxipng, gifsicle, and cwebp are installed; disable Compress if not."""
+        missing = [
+            t for t in ("jpegoptim", "oxipng", "gifsicle", "cwebp")
+            if not shutil.which(t)
+        ]
         if missing:
             tool_list = " and ".join(missing)
             install_hints = "\n".join(
@@ -241,7 +246,8 @@ class MainWindow(QMainWindow):
         self.file_list_widget.setSortingEnabled(enabled)
         if enabled:
             # Re-enable Compress only when all tools are present
-            if shutil.which("jpegoptim") and shutil.which("oxipng"):
+            if (shutil.which("jpegoptim") and shutil.which("oxipng")
+                    and shutil.which("gifsicle") and shutil.which("cwebp")):
                 self.compress_button.setEnabled(True)
         else:
             self.compress_button.setEnabled(False)
@@ -329,9 +335,9 @@ class MainWindow(QMainWindow):
     # ── File list helpers ──────────────────────────────────────────────────────
 
     def _is_supported_image(self, file_path):
-        """Return True if the file is a supported image format (JPEG or PNG)."""
+        """Return True if the file is a supported image format (JPEG, PNG, GIF, or WEBP)."""
         try:
-            return get_file_format(file_path) in ("JPEG", "PNG")
+            return get_file_format(file_path) in ("JPEG", "PNG", "GIF", "WEBP")
         except Exception as e:
             logger.warning("Could not determine format for %s: %s", file_path, e)
             return False
@@ -350,7 +356,7 @@ class MainWindow(QMainWindow):
 
         try:
             format_str = get_file_format(file_path)
-            if format_str not in ("JPEG", "PNG"):
+            if format_str not in ("JPEG", "PNG", "GIF", "WEBP"):
                 return False, 1
 
             success = self.add_file_to_list(file_path, format_str=format_str)
@@ -362,7 +368,7 @@ class MainWindow(QMainWindow):
     def add_files(self):
         """Open a file dialog and add selected image files to the list."""
         files, _ = QFileDialog.getOpenFileNames(
-            self, "Add Files", "", "Image Files (*.jpg *.jpeg *.png);;All Files (*)"
+            self, "Add Files", "", "Image Files (*.jpg *.jpeg *.png *.gif *.webp);;All Files (*)"
         )
         if files:
             added_count = 0
@@ -605,6 +611,24 @@ class MainWindow(QMainWindow):
                             lossless=self.current_preferences['lossless_compression'],
                             strip_metadata=self.current_preferences['strip_metadata'],
                             png_quality=self.current_preferences['png_compression_level'],
+                        )
+                    elif format_str == "GIF":
+                        compressor = GifCompressor()
+                        success = compressor.compress_file(
+                            file_path,
+                            None,
+                            lossless=self.current_preferences['lossless_compression'],
+                            strip_metadata=self.current_preferences['strip_metadata'],
+                            gif_lossy_level=self.current_preferences.get('gif_lossy_level', 40),
+                        )
+                    elif format_str == "WEBP":
+                        compressor = WebpCompressor()
+                        success = compressor.compress_file(
+                            file_path,
+                            None,
+                            lossless=self.current_preferences['lossless_compression'],
+                            strip_metadata=self.current_preferences['strip_metadata'],
+                            webp_compression_level=self.current_preferences.get('webp_compression_level', 80),
                         )
                     else:
                         signals.status_updated.emit(
