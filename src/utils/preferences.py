@@ -30,8 +30,7 @@ class Preferences:
         self.prefs_dir = os.path.expanduser("~/.mountaineer")
         self.pref_file = os.path.join(self.prefs_dir, "mountaineer-prefs")
 
-        if not os.path.exists(self.prefs_dir):
-            os.makedirs(self.prefs_dir)
+        os.makedirs(self.prefs_dir, exist_ok=True)
 
         if not os.path.exists(self.pref_file):
             with open(self.pref_file, 'w') as f:

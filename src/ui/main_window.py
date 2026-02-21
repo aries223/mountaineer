@@ -4,7 +4,7 @@ import shutil
 import threading
 import time
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QColor, QFontMetrics, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QApplication, QCheckBox, QFileDialog, QHBoxLayout, QHeaderView,
@@ -21,6 +21,10 @@ from utils.signals import signals
 
 logger = logging.getLogger(__name__)
 
+# Foreground colour applied to "Saved" cells when compression increased file
+# size. Slightly lighter than pure red so it remains readable on dark themes.
+_NEGATIVE_SAVINGS_COLOR = QColor(220, 50, 50)
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -32,6 +36,8 @@ class MainWindow(QMainWindow):
         window_settings = self.preferences.get_main_window_settings()
 
         self.resize(window_settings['width'], window_settings['height'])
+        # Enforce a sensible minimum so the UI is never unusable.
+        self.setMinimumSize(500, 400)
         if window_settings['x'] is not None and window_settings['y'] is not None:
             x, y = window_settings['x'], window_settings['y']
             screen = QApplication.primaryScreen()
@@ -50,6 +56,7 @@ class MainWindow(QMainWindow):
         self.add_files_action = file_menu.addAction("Add Files...")
         self.add_files_action.setShortcut(QKeySequence("Ctrl+O"))
         self.add_folder_action = file_menu.addAction("Add Folder...")
+        self.add_folder_action.setShortcut(QKeySequence("Ctrl+Shift+O"))
         exit_action = file_menu.addAction("Exit")
         exit_action.setShortcut(QKeySequence("Ctrl+Q"))
 
@@ -121,7 +128,9 @@ class MainWindow(QMainWindow):
 
         self.file_list_widget.setAcceptDrops(True)
         self.file_list_widget.viewport().setAcceptDrops(True)
-        self.file_list_widget.setDragDropMode(QTableWidget.DragDropMode.InternalMove)
+        # DropOnly prevents the table's built-in InternalMove drag mode from
+        # conflicting with the window-level dropEvent handler.
+        self.file_list_widget.setDragDropMode(QTableWidget.DragDropMode.DropOnly)
 
         self.file_list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.file_list_widget.customContextMenuRequested.connect(self.show_context_menu)
@@ -162,7 +171,6 @@ class MainWindow(QMainWindow):
 
         self.progress_bar = QProgressBar(self)
         self.progress_bar.setRange(0, 100)
-        self.progress_bar.setMaximumHeight(int(self.height() * 0.015))
 
         status_bar_layout.addWidget(self.status_label, 60)
         status_bar_layout.addWidget(self.progress_bar, 40)
@@ -195,8 +203,9 @@ class MainWindow(QMainWindow):
             self._update_remove_menu_text
         )
 
-        # Warn about any missing tools on startup
-        self._check_tool_availability()
+        # Defer the tool-availability check until after the window has been
+        # shown so that the QMessageBox has a fully visible parent behind it.
+        QTimer.singleShot(0, self._check_tool_availability)
 
     # ── Tool availability ─────────────────────────────────────────────────────
 
@@ -253,11 +262,6 @@ class MainWindow(QMainWindow):
         button.setMinimumWidth(total_width)
         button.setMaximumWidth(total_width)
 
-    def update_status_bar_layout(self):
-        """Ensure proper status bar alignment."""
-        self.status_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        self.progress_bar.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-
     # ── Window events ──────────────────────────────────────────────────────────
 
     def closeEvent(self, event):
@@ -270,11 +274,9 @@ class MainWindow(QMainWindow):
     # ── Drag-and-drop ──────────────────────────────────────────────────────────
 
     def dragEnterEvent(self, event):
-        """Accept drag events that contain files or directories."""
+        """Accept drag events that contain URLs."""
         if event.mimeData().hasUrls():
-            urls = [url.toLocalFile() for url in event.mimeData().urls()]
-            if any(os.path.isfile(u) or os.path.isdir(u) for u in urls):
-                event.acceptProposedAction()
+            event.acceptProposedAction()
         else:
             event.ignore()
 
@@ -335,6 +337,9 @@ class MainWindow(QMainWindow):
     def _try_add_file_to_list(self, file_path):
         """Try to add a file to the list.
 
+        Resolves the image format once here and passes it through to
+        add_file_to_list to avoid a redundant Pillow open call.
+
         Returns a (success, is_skipped) tuple where is_skipped is 1 when the
         file is rejected (wrong format or invalid path) and 0 on success.
         """
@@ -346,9 +351,9 @@ class MainWindow(QMainWindow):
             if format_str not in ("JPEG", "PNG"):
                 return False, 1
 
-            success = self.add_file_to_list(file_path)
+            success = self.add_file_to_list(file_path, format_str=format_str)
             return success, 0
-        except Exception as e:
+        except Exception:
             logger.exception("Error adding file %s", file_path)
             return False, 1
 
@@ -396,10 +401,18 @@ class MainWindow(QMainWindow):
                 message += f", {skipped_count} incompatible files skipped"
             self.status_label.setText(message)
 
-    def add_file_to_list(self, file_path):
-        """Add a validated image file to the table widget and internal list."""
+    def add_file_to_list(self, file_path, format_str=None):
+        """Add a validated image file to the table widget and internal list.
+
+        Args:
+            file_path: Absolute path to the image file.
+            format_str: Pre-resolved format string ('JPEG' or 'PNG'). When
+                provided the Pillow format-detection call is skipped, avoiding
+                a redundant file open.  When None the format is resolved here.
+        """
         try:
-            format_str = get_file_format(file_path)
+            if format_str is None:
+                format_str = get_file_format(file_path)
             dimensions = get_image_dimensions(file_path)
             size = get_file_size(file_path)
 
@@ -428,7 +441,7 @@ class MainWindow(QMainWindow):
 
             return True
 
-        except Exception as e:
+        except Exception:
             logger.exception("Failed to add file to list: %s", file_path)
             self.file_list_widget.setSortingEnabled(True)
             return False
@@ -453,7 +466,7 @@ class MainWindow(QMainWindow):
     def show_preferences(self):
         """Show the Preferences dialog."""
         from ui.preferences_dialog import PreferencesDialog
-        dialog = PreferencesDialog()
+        dialog = PreferencesDialog(self)
 
         window_settings = self.preferences.get_prefs_dialog_settings()
         dialog.resize(window_settings['width'], window_settings['height'])
@@ -476,7 +489,8 @@ class MainWindow(QMainWindow):
             signals.status_updated.emit("Error: No files selected")
             return
 
-        # Optional one-time overwrite warning
+        # Optional one-time overwrite warning with a verb-labelled action
+        # button so the destructive intent is unambiguous.
         if self.current_preferences.get('warn_before_overwrite', True):
             msg = QMessageBox(self)
             msg.setIcon(QMessageBox.Icon.Warning)
@@ -485,14 +499,15 @@ class MainWindow(QMainWindow):
                 "Files will be compressed and overwritten in place.\n"
                 "This cannot be undone."
             )
-            msg.setStandardButtons(
-                QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel
-            )
             dont_show = QCheckBox("Don't show again")
             msg.setCheckBox(dont_show)
+            compress_btn = msg.addButton("Compress", QMessageBox.ButtonRole.AcceptRole)
+            cancel_btn = msg.addButton(QMessageBox.StandardButton.Cancel)
+            msg.setDefaultButton(cancel_btn)
+            msg.setEscapeButton(cancel_btn)
 
-            result = msg.exec()
-            if result == QMessageBox.StandardButton.Cancel:
+            msg.exec()
+            if msg.clickedButton() != compress_btn:
                 return
 
             if dont_show.isChecked():
@@ -505,16 +520,20 @@ class MainWindow(QMainWindow):
         signals.status_updated.emit(f"Starting compression of {total_files} files...")
         self.progress_bar.setValue(0)
 
-        # Snapshot all table data before spawning the thread so the worker
-        # never touches live UI widgets (not thread-safe).
+        # Build the snapshot by iterating the table's current visual row order
+        # and reading each path from UserRole.  This is correct regardless of
+        # how the user has sorted the table, because visual row i corresponds
+        # to the row-i item — not necessarily file_list[i].
         snapshot = []
-        for i, file_path in enumerate(self.file_list):
+        for i in range(self.file_list_widget.rowCount()):
+            path_item = self.file_list_widget.item(i, 0)
             size_item = self.file_list_widget.item(i, 3)
-            snapshot.append({
-                'path': file_path,
-                'original_size_text': size_item.text() if size_item else "0 B",
-                'row_index': i,
-            })
+            if path_item:
+                snapshot.append({
+                    'path': path_item.data(Qt.ItemDataRole.UserRole),
+                    'original_size_text': size_item.text() if size_item else "0 B",
+                    'row_index': i,
+                })
 
         self._set_compression_running(True)
 
@@ -535,7 +554,6 @@ class MainWindow(QMainWindow):
             return
         try:
             self.status_label.setText(message)
-            QApplication.processEvents()
         except RuntimeError:
             pass
 
@@ -632,7 +650,6 @@ class MainWindow(QMainWindow):
 
             progress = int(((processed + 1) / total_files) * 100)
             signals.progress_updated.emit(progress)
-            time.sleep(0.01)
 
         elapsed = time.time() - start_time
         avg_speed = total_files / elapsed if elapsed > 0 else 0
@@ -677,21 +694,31 @@ class MainWindow(QMainWindow):
             saved_item = QTableWidgetItem(f"{saving_percentage:.2f}%")
             saved_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             if saving_percentage < 0:
-                saved_item.setForeground(QColor(200, 0, 0))
+                saved_item.setForeground(_NEGATIVE_SAVINGS_COLOR)
             self.file_list_widget.setItem(row_index, 5, saved_item)
-
-            QApplication.processEvents()
 
     # ── File selection / removal ───────────────────────────────────────────────
 
     def remove_selected_files(self):
-        """Remove all selected rows from the file list."""
-        selected_rows = {item.row() for item in self.file_list_widget.selectedItems()}
+        """Remove all selected rows from the file list.
+
+        Rows are processed in reverse visual order so that removing a lower
+        row does not shift the indices of higher rows.  The internal file_list
+        is updated by path identity (read from UserRole) so it stays correct
+        even when the table has been sorted.
+        """
+        selected_rows = sorted(
+            {item.row() for item in self.file_list_widget.selectedItems()},
+            reverse=True,
+        )
         if not selected_rows:
             return
-
-        for row in sorted(selected_rows, reverse=True):
-            self.file_list.pop(row)
+        for row in selected_rows:
+            path_item = self.file_list_widget.item(row, 0)
+            if path_item:
+                path = path_item.data(Qt.ItemDataRole.UserRole)
+                if path in self.file_list:
+                    self.file_list.remove(path)
             self.file_list_widget.removeRow(row)
 
         self.update_info_widget()
@@ -710,21 +737,18 @@ class MainWindow(QMainWindow):
 
     def select_all_files(self):
         """Select all rows in the file list."""
-        for row in range(self.file_list_widget.rowCount()):
-            item = self.file_list_widget.item(row, 0)
-            if item:
-                item.setSelected(True)
+        self.file_list_widget.selectAll()
 
     def toggle_status_bar(self):
-        """Toggle visibility of the status bar."""
+        """Toggle visibility of the status bar container widget."""
         self.status_bar_visible = not self.status_bar_visible
-        self.status_label.setVisible(self.status_bar_visible)
-        self.progress_bar.setVisible(self.status_bar_visible)
+        # Hide/show the whole container so the layout reclaims the space.
+        self.status_bar_widget.setVisible(self.status_bar_visible)
 
     def show_about_dialog(self):
         """Show the About Mountaineer dialog."""
         from ui.about import AboutDialog
-        about_dialog = AboutDialog()
+        about_dialog = AboutDialog(self)
         about_dialog.exec()
 
     def show_context_menu(self, position):
@@ -742,9 +766,17 @@ class MainWindow(QMainWindow):
             self.remove_selected_files()
 
     def remove_file_from_list(self, row):
-        """Remove a single file by row index."""
-        if 0 <= row < len(self.file_list):
-            self.file_list.pop(row)
+        """Remove a single file by its current visual row index.
+
+        The internal file_list is updated by path identity (read from
+        UserRole) so it stays correct even when the table has been sorted.
+        """
+        if 0 <= row < self.file_list_widget.rowCount():
+            path_item = self.file_list_widget.item(row, 0)
+            if path_item:
+                path = path_item.data(Qt.ItemDataRole.UserRole)
+                if path in self.file_list:
+                    self.file_list.remove(path)
             self.file_list_widget.removeRow(row)
             self.update_info_widget()
             self.reset_progress_bar()
