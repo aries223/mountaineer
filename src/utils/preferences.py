@@ -9,6 +9,8 @@ class Preferences:
     DEFAULT_PREFERENCES = {
         'jpeg_compression_level': 95,
         'png_compression_level': 1,
+        'gif_lossy_level': 40,
+        'webp_compression_level': 80,
         'lossless_compression': False,
         'strip_metadata': False,
         'warn_before_overwrite': True,
@@ -23,7 +25,7 @@ class Preferences:
         'prefs_dialog_x': None,
         'prefs_dialog_y': None,
         'prefs_dialog_width': 510,
-        'prefs_dialog_height': 215,
+        'prefs_dialog_height': 285,
     }
 
     def __init__(self):
@@ -80,7 +82,7 @@ class Preferences:
             'x': prefs.get('prefs_dialog_x'),
             'y': prefs.get('prefs_dialog_y'),
             'width': prefs.get('prefs_dialog_width', 510),
-            'height': prefs.get('prefs_dialog_height', 215),
+            'height': prefs.get('prefs_dialog_height', 285),
         }
 
     def save_prefs_dialog_settings(self, x, y, width, height):

@@ -100,6 +100,83 @@ class PreferencesDialog(QDialog):
         layout.addLayout(jpeg_group_layout)
         layout.addLayout(png_group_layout)
 
+        # GIF lossy level
+        gif_group_layout = QVBoxLayout()
+        gif_group_layout.setSpacing(2)
+
+        gif_layout = QHBoxLayout()
+        gif_label = QLabel("GIF Lossy Level:")
+        _gif_left_margin = (
+            gif_label.fontMetrics().horizontalAdvance("GIF Lossy Level:")
+            + gif_label.contentsMargins().left()
+            + _style_h_spacing
+        )
+        _gif_val_width = gif_label.fontMetrics().horizontalAdvance("200") + 4
+        self.gif_slider = QSlider(Qt.Orientation.Horizontal)
+        self.gif_slider.setMinimum(0)
+        self.gif_slider.setMaximum(200)
+        self.gif_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
+        self.gif_slider.setTickInterval(10)
+        self.gif_slider.setMinimumWidth(200)
+        self.gif_value_label = QLabel("")
+        self.gif_value_label.setFixedWidth(_gif_val_width)
+        gif_layout.addWidget(gif_label)
+        gif_layout.addWidget(self.gif_slider)
+        gif_layout.addWidget(self.gif_value_label)
+
+        gif_tick_layout = QHBoxLayout()
+        gif_tick_layout.setContentsMargins(
+            _gif_left_margin, 0, _gif_val_width + _style_h_spacing, 0
+        )
+        gif_tick_layout.addWidget(QLabel("0"))
+        gif_tick_layout.addStretch()
+        gif_tick_layout.addWidget(QLabel("100"))
+        gif_tick_layout.addStretch()
+        gif_tick_layout.addWidget(QLabel("200"))
+
+        gif_group_layout.addLayout(gif_layout)
+        gif_group_layout.addLayout(gif_tick_layout)
+
+        # WebP quality
+        webp_group_layout = QVBoxLayout()
+        webp_group_layout.setSpacing(2)
+
+        webp_layout = QHBoxLayout()
+        webp_label = QLabel("WebP Quality:")
+        _webp_left_margin = (
+            webp_label.fontMetrics().horizontalAdvance("WebP Quality:")
+            + webp_label.contentsMargins().left()
+            + _style_h_spacing
+        )
+        _webp_val_width = webp_label.fontMetrics().horizontalAdvance("100") + 4
+        self.webp_slider = QSlider(Qt.Orientation.Horizontal)
+        self.webp_slider.setMinimum(0)
+        self.webp_slider.setMaximum(100)
+        self.webp_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
+        self.webp_slider.setTickInterval(10)
+        self.webp_slider.setMinimumWidth(200)
+        self.webp_value_label = QLabel("")
+        self.webp_value_label.setFixedWidth(_webp_val_width)
+        webp_layout.addWidget(webp_label)
+        webp_layout.addWidget(self.webp_slider)
+        webp_layout.addWidget(self.webp_value_label)
+
+        webp_tick_layout = QHBoxLayout()
+        webp_tick_layout.setContentsMargins(
+            _webp_left_margin, 0, _webp_val_width + _style_h_spacing, 0
+        )
+        webp_tick_layout.addWidget(QLabel("0"))
+        webp_tick_layout.addStretch()
+        webp_tick_layout.addWidget(QLabel("50"))
+        webp_tick_layout.addStretch()
+        webp_tick_layout.addWidget(QLabel("100"))
+
+        webp_group_layout.addLayout(webp_layout)
+        webp_group_layout.addLayout(webp_tick_layout)
+
+        layout.addLayout(gif_group_layout)
+        layout.addLayout(webp_group_layout)
+
         self.lossless_checkbox = QCheckBox("Lossless (PNG files will take a very long time)")
         self.strip_metadata_checkbox = QCheckBox("Strip Metadata")
 
@@ -118,6 +195,8 @@ class PreferencesDialog(QDialog):
         # current_preferences dict.
         self.jpeg_slider.valueChanged.connect(self.update_jpeg_value_label)
         self.png_slider.valueChanged.connect(self.update_png_value_label)
+        self.gif_slider.valueChanged.connect(self.update_gif_value_label)
+        self.webp_slider.valueChanged.connect(self.update_webp_value_label)
 
     def _set_initial_values(self):
         """Set slider and checkbox values from saved preferences.
@@ -131,6 +210,8 @@ class PreferencesDialog(QDialog):
 
         jpeg_level = current_prefs.get('jpeg_compression_level', 95)
         png_level = current_prefs.get('png_compression_level', 1)
+        gif_level = current_prefs.get('gif_lossy_level', 40)
+        webp_level = current_prefs.get('webp_compression_level', 80)
         lossless = current_prefs.get('lossless_compression', False)
         strip_metadata = current_prefs.get('strip_metadata', False)
         warn_before_overwrite = current_prefs.get('warn_before_overwrite', True)
@@ -146,6 +227,18 @@ class PreferencesDialog(QDialog):
         self.png_slider.blockSignals(False)
         self.png_value_label.setText(str(png_level))
 
+        gif_level = max(0, min(200, gif_level))
+        self.gif_slider.blockSignals(True)
+        self.gif_slider.setValue(gif_level)
+        self.gif_slider.blockSignals(False)
+        self.gif_value_label.setText(str(gif_level))
+
+        webp_level = max(0, min(100, webp_level))
+        self.webp_slider.blockSignals(True)
+        self.webp_slider.setValue(webp_level)
+        self.webp_slider.blockSignals(False)
+        self.webp_value_label.setText(str(webp_level))
+
         self.lossless_checkbox.setChecked(lossless)
         self.strip_metadata_checkbox.setChecked(strip_metadata)
 
@@ -154,6 +247,8 @@ class PreferencesDialog(QDialog):
         self.current_preferences = {
             'jpeg_compression_level': jpeg_level,
             'png_compression_level': png_level,
+            'gif_lossy_level': gif_level,
+            'webp_compression_level': webp_level,
             'lossless_compression': lossless,
             'strip_metadata': strip_metadata,
             'warn_before_overwrite': warn_before_overwrite,
@@ -171,6 +266,8 @@ class PreferencesDialog(QDialog):
         new_values = {
             'jpeg_compression_level': self.jpeg_slider.value(),
             'png_compression_level': self.png_slider.value(),
+            'gif_lossy_level': self.gif_slider.value(),
+            'webp_compression_level': self.webp_slider.value(),
             'lossless_compression': self.lossless_checkbox.isChecked(),
             'strip_metadata': self.strip_metadata_checkbox.isChecked(),
             'warn_before_overwrite': existing_prefs.get('warn_before_overwrite', True),
@@ -197,6 +294,14 @@ class PreferencesDialog(QDialog):
     def update_png_value_label(self, value):
         self.png_value_label.setText(str(value))
         self.current_preferences['png_compression_level'] = value
+
+    def update_gif_value_label(self, value):
+        self.gif_value_label.setText(str(value))
+        self.current_preferences['gif_lossy_level'] = value
+
+    def update_webp_value_label(self, value):
+        self.webp_value_label.setText(str(value))
+        self.current_preferences['webp_compression_level'] = value
 
     def closeEvent(self, event):
         """Save window position and size when closing."""
