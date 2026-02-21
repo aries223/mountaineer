@@ -26,11 +26,11 @@ class PreferencesDialog(QDialog):
         jpeg_group_layout.setSpacing(2)
 
         jpeg_layout = QHBoxLayout()
-        jpeg_label = QLabel("JPEG Quality:")
+        jpeg_label = QLabel("JPEG:")
         # Measure the label's own font after construction so the advance is
         # exact; contentsMargins().left() accounts for any internal padding.
         _jpeg_left_margin = (
-            jpeg_label.fontMetrics().horizontalAdvance("JPEG Quality:")
+            jpeg_label.fontMetrics().horizontalAdvance("JPEG:")
             + jpeg_label.contentsMargins().left()
             + _style_h_spacing
         )
@@ -42,8 +42,7 @@ class PreferencesDialog(QDialog):
         self.jpeg_slider.setTickInterval(10)
         self.jpeg_slider.setMinimumWidth(200)
         self.jpeg_slider.setToolTip(
-            "Higher values preserve more quality with larger file sizes.\n"
-            "0 = lowest quality (smallest file); 100 = highest quality (largest file)."
+            "0=Lowest Quality (Smallest File); 100=Highest Quality (Largest File)"
         )
         self.jpeg_value_label = QLabel("")
         self.jpeg_value_label.setFixedWidth(_jpeg_val_width)
@@ -69,11 +68,11 @@ class PreferencesDialog(QDialog):
         png_group_layout.setSpacing(2)
 
         png_layout = QHBoxLayout()
-        png_label = QLabel("PNG Compression Effort:")
+        png_label = QLabel("PNG:")
         # Same measurement strategy as the JPEG block: use the label's own
         # fontMetrics() after construction for accurate pixel widths.
         _png_left_margin = (
-            png_label.fontMetrics().horizontalAdvance("PNG Compression Effort:")
+            png_label.fontMetrics().horizontalAdvance("PNG:")
             + png_label.contentsMargins().left()
             + _style_h_spacing
         )
@@ -85,8 +84,7 @@ class PreferencesDialog(QDialog):
         self.png_slider.setTickInterval(1)
         self.png_slider.setMinimumWidth(200)
         self.png_slider.setToolTip(
-            "Controls how hard oxipng works to compress the file. Higher values are slower but produce smaller files.\n"
-            "0 = fastest (least compression); 6 = slowest (most compression)."
+            "0=Highest Quality (Fastest, Largest File); 6=Lowest Quality (Slowest, Smallest File)"
         )
         self.png_value_label = QLabel("")
         self.png_value_label.setFixedWidth(_png_val_width)
@@ -113,9 +111,9 @@ class PreferencesDialog(QDialog):
         gif_group_layout.setSpacing(2)
 
         gif_layout = QHBoxLayout()
-        gif_label = QLabel("GIF Loss Amount:")
+        gif_label = QLabel("GIF:")
         _gif_left_margin = (
-            gif_label.fontMetrics().horizontalAdvance("GIF Loss Amount:")
+            gif_label.fontMetrics().horizontalAdvance("GIF:")
             + gif_label.contentsMargins().left()
             + _style_h_spacing
         )
@@ -127,8 +125,7 @@ class PreferencesDialog(QDialog):
         self.gif_slider.setTickInterval(20)
         self.gif_slider.setMinimumWidth(200)
         self.gif_slider.setToolTip(
-            "Controls gifsicle --lossy compression strength.\n"
-            "0 = no explicit loss; higher values trade quality for smaller file size."
+            "0=Lossless; 200=Lowest Quality (Smallest File)"
         )
         self.gif_value_label = QLabel("")
         self.gif_value_label.setFixedWidth(_gif_val_width)
@@ -154,9 +151,9 @@ class PreferencesDialog(QDialog):
         webp_group_layout.setSpacing(2)
 
         webp_layout = QHBoxLayout()
-        webp_label = QLabel("WebP Quality:")
+        webp_label = QLabel("WebP:")
         _webp_left_margin = (
-            webp_label.fontMetrics().horizontalAdvance("WebP Quality:")
+            webp_label.fontMetrics().horizontalAdvance("WebP:")
             + webp_label.contentsMargins().left()
             + _style_h_spacing
         )
@@ -168,8 +165,7 @@ class PreferencesDialog(QDialog):
         self.webp_slider.setTickInterval(10)
         self.webp_slider.setMinimumWidth(200)
         self.webp_slider.setToolTip(
-            "Higher values preserve more quality with larger file sizes.\n"
-            "0 = lowest quality (smallest file); 100 = highest quality (largest file)."
+            "0=Lowest Quality (Smallest File); 100=Highest Quality (Largest File)"
         )
         self.webp_value_label = QLabel("")
         self.webp_value_label.setFixedWidth(_webp_val_width)
