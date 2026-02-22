@@ -9,11 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Project re-licensed from proprietary EULA to GNU AGPLv3
-- SPDX license identifier (`AGPL-3.0-or-later`) added to all Python source files
-- SECURITY.md updated to reflect open source status and GitHub-based vulnerability reporting
-
-## [1.2.0] - 2026-02-21
+## [1.1.0] - 2026-02-21
 
 ### Added
 
@@ -33,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Project re-licensed from proprietary EULA to GNU AGPLv3
+- SPDX license identifier (`AGPL-3.0-or-later`) added to all Python source files
+- SECURITY.md updated to reflect open source status and GitHub-based vulnerability reporting
 - Preferences dialog sliders now show tick-mark scale labels instead of verbose parenthetical range hints
 - Preferences dialog has improved padding, alignment, and layout polish
 - File list table columns are now manually resizable; the Saved column no longer stretches to fill remaining space
@@ -58,7 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Python 3.14 stdlib conflict: local `src/compression/` package shadowed by the new stdlib `compression` module; fixed by adding `__init__.py` files to all `src/` packages
 - Artificial per-file delay (`time.sleep(0.01)`) removed from the compression loop, improving throughput on large batches
 
-## [1.1.0] - 2025-01-01
+## [1.0.0] - 2025-01-01
 
 ### Added
 
