@@ -17,7 +17,7 @@ class PreferencesDialog(QDialog):
         self.setWindowModality(Qt.WindowModality.WindowModal)
 
         layout = QVBoxLayout()
-        layout.setContentsMargins(16, 28, 16, 12)
+        layout.setContentsMargins(36, 28, 36, 12)
 
         self.preferences = Preferences()
         # Fix 6: initialise with full defaults so any signal that fires
@@ -54,6 +54,7 @@ class PreferencesDialog(QDialog):
         _jpeg_val_width = self.jpeg_label.fontMetrics().horizontalAdvance("100") + self._VALUE_LABEL_EXTRA
         self.jpeg_value_label = QLabel("")
         self.jpeg_value_label.setFixedWidth(_jpeg_val_width)
+        self.jpeg_value_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
         jpeg_layout.addWidget(self.jpeg_label)
         jpeg_layout.addSpacing(self._SLIDER_H_PADDING)
@@ -94,6 +95,7 @@ class PreferencesDialog(QDialog):
         _png_val_width = self.png_label.fontMetrics().horizontalAdvance("6") + self._VALUE_LABEL_EXTRA
         self.png_value_label = QLabel("")
         self.png_value_label.setFixedWidth(_png_val_width)
+        self.png_value_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         png_layout.addWidget(self.png_label)
         png_layout.addSpacing(self._SLIDER_H_PADDING)
         png_layout.addWidget(self.png_slider)
@@ -134,6 +136,7 @@ class PreferencesDialog(QDialog):
         _gif_val_width = self.gif_label.fontMetrics().horizontalAdvance("200") + self._VALUE_LABEL_EXTRA
         self.gif_value_label = QLabel("")
         self.gif_value_label.setFixedWidth(_gif_val_width)
+        self.gif_value_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         gif_layout.addWidget(self.gif_label)
         gif_layout.addSpacing(self._SLIDER_H_PADDING)
         gif_layout.addWidget(self.gif_slider)
@@ -171,6 +174,7 @@ class PreferencesDialog(QDialog):
         _webp_val_width = self.webp_label.fontMetrics().horizontalAdvance("100") + self._VALUE_LABEL_EXTRA
         self.webp_value_label = QLabel("")
         self.webp_value_label.setFixedWidth(_webp_val_width)
+        self.webp_value_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         webp_layout.addWidget(self.webp_label)
         webp_layout.addSpacing(self._SLIDER_H_PADDING)
         webp_layout.addWidget(self.webp_slider)
