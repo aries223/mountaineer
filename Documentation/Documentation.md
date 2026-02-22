@@ -19,7 +19,7 @@
 
 ## 1. Overview
 
-Mountaineer is a desktop image compression tool for JPEG, PNG, GIF, and WebP files. Compression runs in-place using four external CLI tools: `jpegoptim`, `oxipng`, `gifsicle`, and `cwebp`. The application checks for these tools at startup and disables the Compress button if any are missing.
+Mountaineer is a fast, no-fuss desktop image compression tool for Linux. Drop in your JPEG, PNG, GIF, and WebP files, set your quality preferences once, and compress entire folders in a single click. Files are processed in-place, so the results land exactly where you need them — no exports, no renamed copies.
 
 ---
 
