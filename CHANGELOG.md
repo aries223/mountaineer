@@ -5,16 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
 ## [Unreleased]
-
-### Changed
-
-- Copyright header added to all Python source files (`© 2026 Aries223`)
-
-## [1.1.0] - 2026-02-21
 
 ### Added
 
+- Copyright header added to all Python source files (`© 2026 Aries223`)
 - GIF and WebP compression support via `gifsicle` and `cwebp`
 - Keyboard shortcuts: Ctrl+O (Add Files), Ctrl+Shift+O (Add Folder), Ctrl+Q (Quit), Ctrl+A (Select All), Ctrl+, (Preferences), Delete (Remove Selected)
 - Startup check for required CLI tools with a warning dialog if any are missing
@@ -59,7 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Python 3.14 stdlib conflict: local `src/compression/` package shadowed by the new stdlib `compression` module; fixed by adding `__init__.py` files to all `src/` packages
 - Artificial per-file delay (`time.sleep(0.01)`) removed from the compression loop, improving throughput on large batches
 
-## [1.0.0] - 2025-01-01
+## [1.1.0] - 2025-01-01
 
 ### Added
 
