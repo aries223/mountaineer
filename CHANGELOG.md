@@ -42,6 +42,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hiding the status bar now reclaims the vertical space in the layout instead of leaving a gap
 - Main window now enforces a minimum size of 500 × 400 pixels
 
+### Security
+
+- Argument injection: POSIX `--` end-of-options separator added before all user-supplied file paths in `jpegoptim`, `oxipng`, and `gifsicle` subprocess calls
+- Argument injection (cwebp): filenames whose basename begins with `-` are now rejected in `_try_add_file_to_list` and `WebpCompressor`, since cwebp's non-POSIX argument order makes `--` placement incompatible with its trailing `-o` flag
+- Symlink traversal: `_try_add_file_to_list` now rejects symlinks before any further processing, preventing out-of-scope files from being overwritten via symlinked paths
+- Preferences race condition: Preferences button and menu action are disabled during compression; compression thread now snapshots `current_preferences` into a local dict before processing begins
+- File permissions: log file (`~/.mountaineer/mountaineer.log`) and preferences file (`~/.mountaineer/mountaineer-prefs`) are now created with mode `0600`; preferences directory created with mode `0700`
+- Log injection: `_sanitise_for_log()` helper replaces control characters in user-supplied paths before they are written to the log; applied across all logger call sites in `main_window.py`, `file_utils.py`, and `base_compressor.py`
+- Quality clamping: `JpegCompressor` and `PngCompressor` now clamp quality values to their valid ranges before interpolating into CLI arguments
+- `JpegCompressor` `--dest` corrected to pass the parent directory of `output_path`, as required by `jpegoptim`
+
 ### Fixed
 
 - Preferences data loss on save: settings are now merged into the existing file instead of overwriting it
