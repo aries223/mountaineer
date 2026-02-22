@@ -489,8 +489,6 @@ class MainWindow(QMainWindow):
             if screen and screen.availableGeometry().contains(x, y):
                 dialog.move(x, y)
 
-        dialog.load_preferences()
-
         if dialog.exec():
             self.current_preferences = dialog.current_preferences
 

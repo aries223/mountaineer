@@ -67,7 +67,7 @@ class Preferences:
     def save_main_window_settings(self, x, y, width, height):
         prefs = self.load_preferences()
 
-        if x > 0 and y > 0:
+        if not (x == 0 and y == 0):
             prefs.update({'main_window_x': x, 'main_window_y': y})
         else:
             prefs.pop('main_window_x', None)
@@ -87,10 +87,10 @@ class Preferences:
 
     def save_prefs_dialog_settings(self, x, y, width, height):
         prefs = self.load_preferences()
-        prefs.update({
-            'prefs_dialog_x': x,
-            'prefs_dialog_y': y,
-            'prefs_dialog_width': width,
-            'prefs_dialog_height': height,
-        })
+        if not (x == 0 and y == 0):
+            prefs.update({'prefs_dialog_x': x, 'prefs_dialog_y': y})
+        else:
+            prefs.pop('prefs_dialog_x', None)
+            prefs.pop('prefs_dialog_y', None)
+        prefs.update({'prefs_dialog_width': width, 'prefs_dialog_height': height})
         self.save_preferences(prefs)
