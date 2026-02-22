@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QLabel, QSlider, QCheckBox, QHBoxLayout,
     QStyle, QDialogButtonBox,

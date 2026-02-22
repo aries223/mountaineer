@@ -2,13 +2,13 @@
 
 ## Supported Versions
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
-
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.0   | :white_check_mark:  |
+| Version | Supported |
+|---------|-----------|
+| 1.2.0   | Yes       |
+| < 1.2.0 | No        |
 
 ## Reporting a Vulnerability
 
-More to come...
+Mountaineer is open source software licensed under the GNU AGPLv3.
+
+To report a security vulnerability, please open a GitHub issue at the project repository. For sensitive disclosures, use GitHub's private vulnerability reporting feature.
