@@ -1,11 +1,11 @@
 Name:           Mountaineer
-Version:        1.2.0
+Version:        1.1.0
 Release:        1%{?dist}
 Summary:        Powerfull high quality image compression utility
 
 License:         Copyrighted
 URL:             https://github.com/aries223/mountaineer
-Source0:         %_sourcedir/Mountaineer-1.2.0.tar.gz
+Source0:         %_sourcedir/Mountaineer-1.1.0.tar.gz
 
 BuildArch:      x86_64
 Requires:       python >= 3.8, jpegoptim, oxipng, gifsicle, libwebp-tools
@@ -49,7 +49,7 @@ if [ $1 -eq 0 ]; then
 fi
 
 %changelog
-* Fri Feb 21 2026 Mountaineer - 1.2.0
+* Fri Feb 21 2026 Mountaineer - 1.1.0
 - Add GIF and WebP compression support
 - Add keyboard shortcuts (Ctrl+O, Ctrl+Shift+O, Ctrl+A, Ctrl+,, Delete, Ctrl+Q)
 - Add Preferences dialog tooltips and visual improvements
