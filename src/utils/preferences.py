@@ -35,10 +35,12 @@ class Preferences:
         self.pref_file = os.path.join(self.prefs_dir, "mountaineer-prefs")
 
         os.makedirs(self.prefs_dir, exist_ok=True)
+        os.chmod(self.prefs_dir, 0o700)
 
         if not os.path.exists(self.pref_file):
-            with open(self.pref_file, 'w') as f:
-                json.dump(self.DEFAULT_PREFERENCES, f)
+            fd = os.open(self.pref_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, "w") as f:
+                json.dump(self.DEFAULT_PREFERENCES, f, indent=2)
 
     def load_preferences(self):
         """Load preferences from disk, falling back to defaults on error."""
@@ -52,8 +54,9 @@ class Preferences:
     def save_preferences(self, preferences):
         """Write preferences dict to disk."""
         try:
-            with open(self.pref_file, 'w') as f:
-                json.dump(preferences, f)
+            fd = os.open(self.pref_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, "w") as f:
+                json.dump(preferences, f, indent=2)
         except Exception as e:
             logger.error("Error saving preferences: %s", e)
 

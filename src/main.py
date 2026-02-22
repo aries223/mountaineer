@@ -15,11 +15,18 @@ def _setup_logging():
     os.makedirs(log_dir, exist_ok=True)
     log_file = os.path.join(log_dir, "mountaineer.log")
 
+    # Open (or create) the log file atomically at mode 0o600 so it is never
+    # world-readable, even for the brief window between creation and a
+    # subsequent chmod call.  os.O_APPEND ensures writes are safe across
+    # re-opens.  os.fdopen wraps the raw fd as a text stream for StreamHandler.
+    log_fd = os.open(log_file, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+    file_handler = logging.StreamHandler(os.fdopen(log_fd, "a"))
+    file_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(name)s %(levelname)s: %(message)s",
         handlers=[
-            logging.FileHandler(log_file),
+            file_handler,
             logging.StreamHandler(sys.stderr),
         ],
     )

@@ -99,6 +99,6 @@ class GifCompressor(BaseCompressor):
             # animated GIFs without requiring a separate temp file.
             cmd.append("--batch")
 
-        cmd.append(input_path)
+        cmd.extend(["--", input_path])
 
         return self.run_command(cmd)

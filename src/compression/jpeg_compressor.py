@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright © 2026 Aries223 (https://github.com/aries223)
 import logging
+import os
 
 from .base_compressor import BaseCompressor
 
@@ -29,14 +30,15 @@ class JpegCompressor(BaseCompressor):
         if lossless:
             cmd.extend(["--optimize", "--all-progressive"])
         else:
-            cmd.extend(["-f", f"-m{int(jpeg_quality)}"])
+            jpeg_quality = max(0, min(100, int(jpeg_quality)))
+            cmd.extend(["-f", f"-m{jpeg_quality}"])
 
         if strip_metadata:
             cmd.append("--strip-all")
 
         if output_path and output_path != input_path:
-            cmd.extend(["--dest", output_path])
+            cmd.extend(["--dest", os.path.dirname(os.path.abspath(output_path))])
 
-        cmd.append(input_path)
+        cmd.extend(["--", input_path])
 
         return self.run_command(cmd)

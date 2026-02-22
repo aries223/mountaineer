@@ -5,6 +5,8 @@ import os
 
 from PIL import Image
 
+from compression.base_compressor import _sanitise_for_log
+
 logger = logging.getLogger(__name__)
 
 
@@ -14,7 +16,7 @@ def get_image_dimensions(file_path):
         with Image.open(file_path) as img:
             return f"{img.width}x{img.height}"
     except Exception as e:
-        logger.warning("Failed to get dimensions for %s: %s", file_path, e)
+        logger.warning("Failed to get dimensions for %s: %s", _sanitise_for_log(file_path), e)
         return "N/A"
 
 
@@ -34,7 +36,7 @@ def get_file_size(file_path, human_readable=True):
         else:
             return size
     except Exception as e:
-        logger.warning("Failed to get file size for %s: %s", file_path, e)
+        logger.warning("Failed to get file size for %s: %s", _sanitise_for_log(file_path), e)
         return "0 B"
 
 
@@ -44,5 +46,5 @@ def get_file_format(file_path):
         with Image.open(file_path) as img:
             return img.format.upper()
     except Exception as e:
-        logger.warning("Failed to get format for %s: %s", file_path, e)
+        logger.warning("Failed to get format for %s: %s", _sanitise_for_log(file_path), e)
         return "N/A"

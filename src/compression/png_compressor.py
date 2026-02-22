@@ -28,7 +28,8 @@ class PngCompressor(BaseCompressor):
                 self.last_error = "png_quality must be provided for non-lossless compression"
                 logger.error(self.last_error)
                 return False
-            cmd.extend([f"-o{int(png_quality)}", "-f", "0-9"])
+            png_quality = max(0, min(6, int(png_quality)))
+            cmd.extend([f"-o{png_quality}", "-f", "0-9"])
 
         if strip_metadata:
             cmd.append("--strip=all")
@@ -39,6 +40,6 @@ class PngCompressor(BaseCompressor):
         if output_path and output_path != input_path:
             cmd.extend(["--out", output_path])
 
-        cmd.append(input_path)
+        cmd.extend(["--", input_path])
 
         return self.run_command(cmd)

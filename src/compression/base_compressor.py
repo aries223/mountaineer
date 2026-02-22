@@ -6,6 +6,14 @@ import subprocess
 logger = logging.getLogger(__name__)
 
 
+def _sanitise_for_log(value: str) -> str:
+    """Replace control characters in a string to prevent log injection."""
+    return "".join(
+        c if c.isprintable() else f"<0x{ord(c):02X}>"
+        for c in value
+    )
+
+
 class BaseCompressor:
     def __init__(self):
         self.last_error = None
@@ -27,8 +35,8 @@ class BaseCompressor:
                 logger.warning(
                     "Command failed (code %d): %s\nstderr: %s",
                     result.returncode,
-                    cmd,
-                    self.last_error,
+                    [_sanitise_for_log(str(arg)) for arg in cmd],
+                    _sanitise_for_log(self.last_error),
                 )
                 return False
             return True

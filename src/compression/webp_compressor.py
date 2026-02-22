@@ -97,6 +97,17 @@ class WebpCompressor(BaseCompressor):
         if strip_metadata:
             cmd.extend(["-metadata", "none"])
 
+        # Guard against filenames that start with a hyphen, which cwebp would
+        # misinterpret as a flag.  cwebp does not support POSIX end-of-options
+        # ("--") because "-o" must follow the positional input argument and
+        # cwebp would treat it as a second positional file rather than the
+        # output flag.  Rejecting such filenames is the correct mitigation.
+        if os.path.basename(input_path).startswith("-"):
+            self.last_error = (
+                f"Refusing to process file with leading hyphen in name: {input_path!r}"
+            )
+            return False
+
         cmd.extend([input_path, "-o", effective_output])
 
         success = self.run_command(cmd)

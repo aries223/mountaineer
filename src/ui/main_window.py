@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout, QWidget,
 )
 
+from compression.base_compressor import _sanitise_for_log
 from compression.gif_compressor import GifCompressor
 from compression.jpeg_compressor import JpegCompressor
 from compression.png_compressor import PngCompressor
@@ -79,13 +80,13 @@ class MainWindow(QMainWindow):
         self.clear_action = self.edit_menu.addAction("Clear")
         select_all_action = self.edit_menu.addAction("Select All")
         select_all_action.setShortcut(QKeySequence("Ctrl+A"))
-        preferences_action = self.edit_menu.addAction("Preferences...")
-        preferences_action.setShortcut(QKeySequence("Ctrl+,"))
+        self.preferences_action = self.edit_menu.addAction("Preferences...")
+        self.preferences_action.setShortcut(QKeySequence("Ctrl+,"))
 
         self.remove_action.triggered.connect(self.remove_selected_files)
         self.clear_action.triggered.connect(self.clear_file_list)
         select_all_action.triggered.connect(self.select_all_files)
-        preferences_action.triggered.connect(self.show_preferences)
+        self.preferences_action.triggered.connect(self.show_preferences)
 
         # View menu
         view_menu = self.menu_bar.addMenu("View")
@@ -108,21 +109,21 @@ class MainWindow(QMainWindow):
 
         self.add_files_button = QPushButton("Add Files")
         self.clear_list_button = QPushButton("Clear File List")
-        preferences_button = QPushButton("Preferences")
+        self.preferences_button = QPushButton("Preferences")
 
         self.add_files_button.clicked.connect(self.add_files)
         self.clear_list_button.clicked.connect(self.clear_file_list)
-        preferences_button.clicked.connect(self.show_preferences)
+        self.preferences_button.clicked.connect(self.show_preferences)
 
         self._set_button_width_with_padding(self.add_files_button, 40)
         self._set_button_width_with_padding(self.clear_list_button, 40)
-        self._set_button_width_with_padding(preferences_button, 40)
+        self._set_button_width_with_padding(self.preferences_button, 40)
 
         self.button_bar_layout.addWidget(self.add_files_button, alignment=Qt.AlignmentFlag.AlignLeft)
         self.button_bar_layout.addSpacing(8)
         self.button_bar_layout.addWidget(self.clear_list_button, alignment=Qt.AlignmentFlag.AlignLeft)
         self.button_bar_layout.addStretch()
-        self.button_bar_layout.addWidget(preferences_button, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.button_bar_layout.addWidget(self.preferences_button, alignment=Qt.AlignmentFlag.AlignLeft)
 
         # ── File list table ───────────────────────────────────────────────────
         self.file_list_widget = QTableWidget()
@@ -245,10 +246,12 @@ class MainWindow(QMainWindow):
         enabled = not running
         self.add_files_button.setEnabled(enabled)
         self.clear_list_button.setEnabled(enabled)
+        self.preferences_button.setEnabled(enabled)
         self.add_files_action.setEnabled(enabled)
         self.add_folder_action.setEnabled(enabled)
         self.remove_action.setEnabled(enabled)
         self.clear_action.setEnabled(enabled)
+        self.preferences_action.setEnabled(enabled)
         # Disable table sorting so row indices remain stable during compression
         self.file_list_widget.setSortingEnabled(enabled)
         if enabled:
@@ -324,7 +327,7 @@ class MainWindow(QMainWindow):
                 else:
                     skipped_files += 1
             except Exception as e:
-                logger.warning("Error processing dropped URL %s: %s", url, e)
+                logger.warning("Error processing dropped URL %s: %s", _sanitise_for_log(url), e)
                 skipped_files += 1
                 continue
 
@@ -345,7 +348,7 @@ class MainWindow(QMainWindow):
         try:
             return get_file_format(file_path) in ("JPEG", "PNG", "GIF", "WEBP")
         except Exception as e:
-            logger.warning("Could not determine format for %s: %s", file_path, e)
+            logger.warning("Could not determine format for %s: %s", _sanitise_for_log(file_path), e)
             return False
 
     def _try_add_file_to_list(self, file_path):
@@ -357,6 +360,21 @@ class MainWindow(QMainWindow):
         Returns a (success, is_skipped) tuple where is_skipped is 1 when the
         file is rejected (wrong format or invalid path) and 0 on success.
         """
+        if os.path.islink(file_path):
+            logger.warning("Skipping symlink: %s", _sanitise_for_log(file_path))
+            return False, 1
+
+        # Reject filenames that start with a hyphen.  Such names can be
+        # misinterpreted as CLI flags by external tools (e.g. cwebp) that do
+        # not support POSIX end-of-options ("--") in the required position.
+        # This upstream guard ensures no compressor ever receives such a path.
+        if os.path.basename(file_path).startswith("-"):
+            logger.warning(
+                "Skipping file with leading hyphen in name: %s",
+                _sanitise_for_log(file_path),
+            )
+            return False, 1
+
         if not os.path.isfile(file_path):
             return False, 1
 
@@ -368,7 +386,7 @@ class MainWindow(QMainWindow):
             success = self.add_file_to_list(file_path, format_str=format_str)
             return success, 0
         except Exception:
-            logger.exception("Error adding file %s", file_path)
+            logger.exception("Error adding file %s", _sanitise_for_log(file_path))
             return False, 1
 
     def add_files(self):
@@ -457,7 +475,7 @@ class MainWindow(QMainWindow):
             return True
 
         except Exception:
-            logger.exception("Failed to add file to list: %s", file_path)
+            logger.exception("Failed to add file to list: %s", _sanitise_for_log(file_path))
             self.file_list_widget.setSortingEnabled(True)
             return False
 
@@ -582,6 +600,7 @@ class MainWindow(QMainWindow):
         widgets. Emits signals for every UI update so all widget changes
         happen on the main thread.
         """
+        prefs = dict(self.current_preferences)
         start_time = time.time()
         success_count = 0
         fail_count = 0
@@ -604,36 +623,36 @@ class MainWindow(QMainWindow):
                         success = compressor.compress_file(
                             file_path,
                             None,
-                            lossless=self.current_preferences['lossless_compression'],
-                            strip_metadata=self.current_preferences['strip_metadata'],
-                            jpeg_quality=self.current_preferences['jpeg_compression_level'],
+                            lossless=prefs['lossless_compression'],
+                            strip_metadata=prefs['strip_metadata'],
+                            jpeg_quality=prefs['jpeg_compression_level'],
                         )
                     elif format_str == "PNG":
                         compressor = PngCompressor()
                         success = compressor.compress_file(
                             file_path,
                             None,
-                            lossless=self.current_preferences['lossless_compression'],
-                            strip_metadata=self.current_preferences['strip_metadata'],
-                            png_quality=self.current_preferences['png_compression_level'],
+                            lossless=prefs['lossless_compression'],
+                            strip_metadata=prefs['strip_metadata'],
+                            png_quality=prefs['png_compression_level'],
                         )
                     elif format_str == "GIF":
                         compressor = GifCompressor()
                         success = compressor.compress_file(
                             file_path,
                             None,
-                            lossless=self.current_preferences['lossless_compression'],
-                            strip_metadata=self.current_preferences['strip_metadata'],
-                            gif_lossy_level=self.current_preferences.get('gif_lossy_level', 40),
+                            lossless=prefs['lossless_compression'],
+                            strip_metadata=prefs['strip_metadata'],
+                            gif_lossy_level=prefs.get('gif_lossy_level', 40),
                         )
                     elif format_str == "WEBP":
                         compressor = WebpCompressor()
                         success = compressor.compress_file(
                             file_path,
                             None,
-                            lossless=self.current_preferences['lossless_compression'],
-                            strip_metadata=self.current_preferences['strip_metadata'],
-                            webp_compression_level=self.current_preferences.get('webp_compression_level', 80),
+                            lossless=prefs['lossless_compression'],
+                            strip_metadata=prefs['strip_metadata'],
+                            webp_compression_level=prefs.get('webp_compression_level', 80),
                         )
                     else:
                         signals.status_updated.emit(
@@ -664,7 +683,7 @@ class MainWindow(QMainWindow):
                                 )
                             except Exception:
                                 logger.exception(
-                                    "Error calculating savings for %s", filename
+                                    "Error calculating savings for %s", _sanitise_for_log(filename)
                                 )
                             success_count += 1
                         else:
@@ -675,7 +694,7 @@ class MainWindow(QMainWindow):
                             fail_count += 1
 
             except Exception:
-                logger.exception("Unexpected error processing %s", filename)
+                logger.exception("Unexpected error processing %s", _sanitise_for_log(filename))
                 signals.status_updated.emit(f"Error processing: {filename}")
                 fail_count += 1
 
