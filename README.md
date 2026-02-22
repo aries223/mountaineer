@@ -2,66 +2,80 @@
 <img src="https://github.com/aries223/mountaineer/blob/main/src/ui/logo/mountaineer.png">
 </p>
 
-
-
 # Mountaineer
 
-Mountaineer is a powerful desktop application designed to simplify image compression for photographers, designers, and anyone working with large collections of JPEG and PNG images. It provides an intuitive interface for batch compressing images while offering compression customization options through its preferences system.
+Mountaineer is a Linux desktop application for batch compressing JPEG, PNG, GIF, and WebP images. It wraps `jpegoptim`, `oxipng`, `gifsicle`, and `cwebp` behind a Qt interface, letting you add files or folders, tune quality settings per format, and compress in place — all without touching the command line.
 
-## Core Features
+## Features
 
-### 1. **Image Compression**
-- **JPEG Support**: Uses `jpegoptim` for efficient JPEG compression with adjustable quality levels
-- **PNG Support**: Uses `oxipng` for optimal PNG compression with lossy and lossless options
-- **Metadata Stripping**: Option to remove metadata from compressed files for reduced file size
-
-### 2. **User Interface**
-- **Intuitive Main Window**: Clean, organized layout showing all image information in a table format
-- **Drag-and-Drop Support**: Easy file addition via drag-and-drop or traditional file dialogs
-- **Context Menu**: Individual file removal through right-click context menu
-
-### 3. **Preferences System**
-- **Compression Levels**: Customizable JPEG and PNG compression quality levels
-- **Lossless Mode**: Toggle for lossless compression when needed
-- **Metadata Options**: Control whether metadata should be stripped from compressed files
-- **Window Position/Size Memory**: Remembers last window position and size for both main application and preferences dialog
-
-### 4. **Progress Tracking**
-- **Real-time Status Updates**: Detailed status bar showing current operation progress
-- **Progress Bar**: Visual indicator of compression progress during batch operations
-- **Performance Metrics**: Displays compression time and average speed after completion
-
-### 5. **File Management**
-- **Comprehensive File List**: Displays file name, format, dimensions, size, compressed size, and savings percentage
-- **Error Handling**: Clear feedback for incompatible files or processing errors
-- **Contextual Information**: All relevant details displayed in an organized table with proper column alignment
-
-### 6. **User Experience**
-- **Threaded Processing**: Background compression operations keep UI responsive
-- **Window Management**: Customizable and rememberable window sizes/positions
-- **Error Reporting**: Clear status bar messages for all operations including errors and warnings
-
-Mountaineer combines powerful image compression capabilities with an intuitive user interface, making it the perfect tool for anyone needing to efficiently manage and compress large collections of images.
-
-___
+- Batch compression via file dialog, Add Folder (recursive), or drag-and-drop
+- Supports JPEG, PNG, GIF, and WebP formats
+- In-place compression — files are overwritten directly, no renamed copies
+- Configurable quality settings per format: JPEG 0–100, PNG 0–6, GIF 0–200, WebP 0–100
+- Lossless mode, strip metadata, and warn-before-overwrite toggles in Preferences
+- Results table with six columns: File Name, Format, Dimensions, Size, Compressed, Saved
+- Negative savings (file grew) shown in red
+- Sortable, manually resizable columns
+- Progress bar and status bar, both toggleable
+- Compression runs in a background thread — UI stays responsive during batch jobs
+- Startup check for required CLI tools with a warning if any are missing
+- Application log at `~/.mountaineer/mountaineer.log`
 
 ## Installation
 
-This app has been tested to run on Fedora 42 KDE and Gnome. 
+### RPM (Fedora / RHEL)
 
-#### Prerequisites
-- Python 3.8 or higher (preferably the latest Python 3.13 release)
-- Pip (Python package installer)
+Install the required system tools:
 
-1. Install Prerequisites (if you dont have them already)
+```bash
+sudo dnf install jpegoptim oxipng gifsicle libwebp-tools
+```
+
+Then install the RPM package:
+
+```bash
+sudo dnf install Mountaineer-1.1.0.rpm
+```
+
+### Run from source
+
+Install Python dependencies:
+
 ```bash
 pip install PyQt6 pillow
 ```
-2. Install the app
+
+Install the required system tools (Fedora):
+
 ```bash
-sudo dnf install <Mountaineer-XXXXX.rpm>
+sudo dnf install jpegoptim oxipng gifsicle libwebp-tools
 ```
-(<insert current .rpm filename>)
+
+Run the application from the repository root:
+
+```bash
+python src/main.py
+```
+
+## Keyboard Shortcuts
+
+| Shortcut        | Action           |
+|-----------------|------------------|
+| Ctrl+O          | Add Files        |
+| Ctrl+Shift+O    | Add Folder       |
+| Ctrl+A          | Select All       |
+| Delete          | Remove Selected  |
+| Ctrl+,          | Preferences      |
+| Ctrl+Q          | Quit             |
+
+## Documentation
+
+A full user guide is available at [`Documentation/Documentation.md`](Documentation/Documentation.md).
+
+## License
+
+GNU AGPLv3. See the [LICENSE](LICENSE) file for details.
 
 ## AI Disclaimer
-Mountaineer is coded using modern AI assisted coding (AIAC). We see AIAC as an important tool, which allows us to produce applications we wouldnt otherwise be able to produce. Every effort is taken to prevent 'slop'.
+
+Mountaineer is developed using AI-assisted coding tools, specifically Claude Code by Anthropic. This approach allows a small team to build and maintain a reliable desktop application. Care is taken to review all generated code for correctness, security, and adherence to project standards.
