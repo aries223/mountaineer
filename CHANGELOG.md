@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Project re-licensed from proprietary EULA to GNU AGPLv3
+- SPDX license identifier (`AGPL-3.0-or-later`) added to all Python source files
+- SECURITY.md updated to reflect open source status and GitHub-based vulnerability reporting
+
 ## [1.2.0] - 2026-02-21
 
 ### Added
