@@ -17,6 +17,7 @@ class PreferencesDialog(QDialog):
         self.setWindowModality(Qt.WindowModality.WindowModal)
 
         layout = QVBoxLayout()
+        layout.setContentsMargins(16, 28, 16, 12)
 
         self.preferences = Preferences()
         # Fix 6: initialise with full defaults so any signal that fires
