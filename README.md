@@ -4,7 +4,7 @@
 
 # Mountaineer
 
-Mountaineer is a Linux desktop application for batch compressing JPEG, PNG, GIF, and WebP images. It wraps `jpegoptim`, `oxipng`, `gifsicle`, and `cwebp` behind a Qt interface, letting you add files or folders, tune quality settings per format, and compress in place — all without touching the command line.
+Mountaineer is a Linux desktop application for batch compressing JPEG, PNG, GIF, and WebP images. It uses the best available compression libraries behind a Qt interface, letting you add files or folders, tune quality settings per format, and compress in place — all without touching the command line.
 
 ## Features
 
@@ -18,42 +18,30 @@ Mountaineer is a Linux desktop application for batch compressing JPEG, PNG, GIF,
 - Sortable, manually resizable columns
 - Progress bar and status bar, both toggleable
 - Compression runs in a background thread — UI stays responsive during batch jobs
-- Startup check for required CLI tools with a warning if any are missing
+- Startup check for compression tools with a warning if any are missing
 - Application log at `~/.mountaineer/mountaineer.log`
 
 ## Installation
 
 ### RPM (Fedora / RHEL)
 
-Install the required system tools:
-
-```bash
-sudo dnf install jpegoptim oxipng gifsicle libwebp-tools
-```
-
-Then install the RPM package:
-
 ```bash
 sudo dnf install Mountaineer-1.1.0.rpm
 ```
 
-### Run from source
+### DEB (Debian / Ubuntu)
 
-Install Python dependencies:
+```bash
+sudo dpkg -i Mountaineer-1.1.0.deb
+```
+
+All dependencies (PyQt6, Pillow, jpegoptim, oxipng, gifsicle, libwebp-tools) are installed automatically by the package.
+
+### Run from source
 
 ```bash
 pip install PyQt6 pillow
-```
-
-Install the required system tools (Fedora):
-
-```bash
-sudo dnf install jpegoptim oxipng gifsicle libwebp-tools
-```
-
-Run the application from the repository root:
-
-```bash
+sudo dnf install jpegoptim oxipng gifsicle libwebp-tools  # Fedora
 python src/main.py
 ```
 
@@ -78,4 +66,4 @@ GNU AGPLv3. See the [LICENSE](LICENSE) file for details.
 
 ## AI Disclaimer
 
-Mountaineer is developed using AI-assisted coding tools, specifically Claude Code by Anthropic. This approach allows a small team to build and maintain a reliable desktop application. Care is taken to review all generated code for correctness, security, and adherence to project standards.
+Mountaineer is developed using AI-assisted coding tools (AIAC). Care is taken to review all generated code for correctness, security, and adherence to standards.
