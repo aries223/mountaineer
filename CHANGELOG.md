@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Copyright header added to all Python source files (`© 2026 Aries223`)
+
 ## [1.1.0] - 2026-02-21
 
 ### Added
