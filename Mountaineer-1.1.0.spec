@@ -1,9 +1,9 @@
 Name:           Mountaineer
 Version:        1.1.0
 Release:        1%{?dist}
-Summary:        Powerfull high quality image compression utility
+Summary:     A high quality image compression utility.
 
-License:         Copyrighted
+License:       AGPL-3.0
 URL:             https://github.com/aries223/mountaineer
 Source0:         %_sourcedir/Mountaineer-1.1.0.tar.gz
 

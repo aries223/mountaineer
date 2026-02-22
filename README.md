@@ -4,22 +4,19 @@
 
 # Mountaineer
 
-Mountaineer is a Linux desktop application for batch compressing JPEG, PNG, GIF, and WebP images. It uses the best available compression libraries behind a Qt interface, letting you add files or folders, tune quality settings per format, and compress in place — all without touching the command line.
+Mountaineer is a high quality image compression utility for Linux that batch compresses JPEG, PNG, GIF, and WebP images. It uses the best available compression libraries behind a modern interface, letting you add files or folders, tune quality settings per format, and compress in place.
 
 ## Features
 
 - Batch compression via file dialog, Add Folder (recursive), or drag-and-drop
 - Supports JPEG, PNG, GIF, and WebP formats
 - In-place compression — files are overwritten directly, no renamed copies
-- Configurable quality settings per format: JPEG 0–100, PNG 0–6, GIF 0–200, WebP 0–100
+- Configurable quality settings per format
 - Lossless mode, strip metadata, and warn-before-overwrite toggles in Preferences
-- Results table with six columns: File Name, Format, Dimensions, Size, Compressed, Saved
-- Negative savings (file grew) shown in red
+- Negative savings (file grew) called out in red
 - Sortable, manually resizable columns
-- Progress bar and status bar, both toggleable
 - Compression runs in a background thread — UI stays responsive during batch jobs
-- Startup check for compression tools with a warning if any are missing
-- Application log at `~/.mountaineer/mountaineer.log`
+- Errors during compression logged to a log file.
 
 ## Installation
 
@@ -34,8 +31,6 @@ sudo dnf install Mountaineer-1.1.0.rpm
 ```bash
 sudo dpkg -i Mountaineer-1.1.0.deb
 ```
-
-All dependencies (PyQt6, Pillow, jpegoptim, oxipng, gifsicle, libwebp-tools) are installed automatically by the package.
 
 ### Run from source
 
@@ -58,7 +53,7 @@ python src/main.py
 
 ## Documentation
 
-A full user guide is available at [`Documentation/Documentation.md`](Documentation/Documentation.md).
+A full user guide is available  [`Documentation/Documentation.md`](Here).
 
 ## License
 

@@ -19,7 +19,7 @@
 
 ## 1. Overview
 
-Mountaineer is a fast, no-fuss desktop image compression tool for Linux. Drop in your JPEG, PNG, GIF, and WebP files, set your quality preferences once, and compress entire folders in a single click. Files are processed in-place, so the results land exactly where you need them — no exports, no renamed copies.
+Mountaineer is a high quality image compression utility for Linux. Drop in your JPEG, PNG, GIF, and WebP files, set your quality preferences once, and compress entire folders in a single click. Files are processed in-place, so the results land exactly where you need them — no exports, no renamed copies.
 
 ---
 
