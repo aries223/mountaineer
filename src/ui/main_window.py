@@ -613,6 +613,7 @@ class MainWindow(QMainWindow):
 
             try:
                 if not os.path.isfile(file_path):
+                    logger.warning("Skipped: %s no longer exists", _sanitise_for_log(file_path))
                     signals.status_updated.emit(f"Skipped: {filename} no longer exists")
                     fail_count += 1
                 else:
@@ -655,6 +656,11 @@ class MainWindow(QMainWindow):
                             webp_compression_level=prefs.get('webp_compression_level', 80),
                         )
                     else:
+                        logger.warning(
+                            "Skipped %s: unsupported format %s",
+                            _sanitise_for_log(file_path),
+                            _sanitise_for_log(format_str),
+                        )
                         signals.status_updated.emit(
                             f"Warning: {filename} skipped (unsupported format)"
                         )
