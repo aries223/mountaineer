@@ -52,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Log injection: `_sanitise_for_log()` helper replaces control characters in user-supplied paths before they are written to the log; applied across all logger call sites in `main_window.py`, `file_utils.py`, and `base_compressor.py`
 - Quality clamping: `JpegCompressor` and `PngCompressor` now clamp quality values to their valid ranges before interpolating into CLI arguments
 - `JpegCompressor` `--dest` corrected to pass the parent directory of `output_path`, as required by `jpegoptim`
+- Preferences values loaded from disk are now type-validated and range-clamped by `_validate_preferences()` before use; invalid values are replaced with defaults and logged as warnings
 
 ### Fixed
 
