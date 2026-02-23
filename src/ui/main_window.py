@@ -688,6 +688,11 @@ class MainWindow(QMainWindow):
                             success_count += 1
                         else:
                             error_msg = compressor.last_error or "unknown error"
+                            logger.error(
+                                "Compression failed for %s: %s",
+                                _sanitise_for_log(filename),
+                                _sanitise_for_log(error_msg),
+                            )
                             signals.status_updated.emit(
                                 f"Failed: {filename} \u2014 {error_msg}"
                             )
@@ -709,6 +714,7 @@ class MainWindow(QMainWindow):
         else:
             result_msg = (
                 f"{success_count}/{total_files} files compressed. {fail_count} failed."
+                " Check the log for details."
             )
 
         signals.compression_complete.emit(
