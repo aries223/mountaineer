@@ -32,7 +32,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SECURITY.md updated to reflect open source status and GitHub-based vulnerability reporting
 - Preferences dialog sliders now show tick-mark scale labels instead of verbose parenthetical range hints
 - Preferences dialog has improved padding, alignment, and layout polish
-- File list table columns are now manually resizable; the Saved column no longer stretches to fill remaining space
+- File list table columns span the full window width; all six column dividers are user-resizable; the Saved column auto-fills remaining space via `setStretchLastSection`
+- Each column enforces a minimum width based on its header label text so columns cannot be collapsed below readability
+- Column widths are persisted across sessions via `QHeaderView.saveState` / `restoreState`
+- Preferences dialog now always opens centred over the main window instead of restoring a saved position
+- Default window size updated to 875 × 1145 pixels
+- Default compression levels updated: JPEG 90, GIF 20, WebP 90; Strip Metadata enabled by default
+- Main window now enforces a minimum size of 650 × 400 pixels
 - About dialog logo falls back to the source-relative path when the application is not installed system-wide
 - About dialog link colour now adapts to the system theme
 - Lossless JPEG compression now fully implemented (`jpegoptim --optimize --all-progressive`) instead of a no-op stub
@@ -40,7 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Drag-and-drop table mode changed to DropOnly to avoid conflict with the window-level drop handler
 - Overwrite warning dialog confirmation button relabelled from "Ok" to "Compress"
 - Hiding the status bar now reclaims the vertical space in the layout instead of leaving a gap
-- Main window now enforces a minimum size of 500 × 400 pixels
+- Sorting is now disabled once per batch add (Add Files, Add Folder, drag-and-drop) rather than toggled per row, preventing layout thrash during large imports
 
 ### Security
 
@@ -58,6 +64,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Compression failure details were not written to the log file; failures now emit `logger.error()` with the error detail, and skipped files (no longer exists, unsupported format) now emit `logger.warning()`
 - Log file (`~/.mountaineer/mountaineer.log`) was not being created due to a broken `os.fdopen`+`StreamHandler`+`basicConfig` logging setup; replaced with `FileHandler` on a pre-created `0600` file, with the root logger configured directly via `addHandler`
+- Preferences dialog width/height were not saved when dismissed via Save or Cancel buttons; fixed by replacing `closeEvent` with a `done()` override which is called by all dismissal paths
+- `closeEvent` now performs a single load-write for all persisted state (window size, column layout) instead of two sequential writes that could lose position data
 - Preferences data loss on save: settings are now merged into the existing file instead of overwriting it
 - Sort desync data corruption: file paths are now read from `UserRole` data rather than positional indices, which broke after any column sort
 - Thread-safety race condition: table data is snapshotted before the compression thread is spawned
