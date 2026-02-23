@@ -9,23 +9,22 @@ logger = logging.getLogger(__name__)
 
 class Preferences:
     DEFAULT_PREFERENCES = {
-        'jpeg_compression_level': 95,
+        'jpeg_compression_level': 90,
         'png_compression_level': 1,
-        'gif_lossy_level': 40,
-        'webp_compression_level': 80,
+        'gif_lossy_level': 20,
+        'webp_compression_level': 90,
         'lossless_compression': False,
-        'strip_metadata': False,
+        'strip_metadata': True,
         'warn_before_overwrite': True,
 
         # Main window settings
         'main_window_x': None,
         'main_window_y': None,
-        'main_window_width': 675,
-        'main_window_height': 725,
+        'main_window_width': 875,
+        'main_window_height': 1145,
+        'column_header_state': "AAAA/wAAAAAAAAABAAAAAQAAAAYBAAAAAAAAAAAAAAAAAAAAAAAAA1sAAAAGAAEBAQAAAAAAAAAAAAAAAGQAAAAoAAAAhAAAAAAAAAAGAAABVQAAAAEAAAAAAAAAVAAAAAEAAAAAAAAAgQAAAAEAAAAAAAAAQgAAAAEAAAAAAAAAggAAAAEAAAAAAAAAbQAAAAEAAAAAAAAD6AAAAABkAAAAAAAAAAAAAAAAAAAAAQ==",
 
         # Preferences dialog settings
-        'prefs_dialog_x': None,
-        'prefs_dialog_y': None,
         'prefs_dialog_width': 510,
         'prefs_dialog_height': 400,
     }
@@ -76,9 +75,12 @@ class Preferences:
                 except (TypeError, ValueError):
                     result = default
             else:
-                # default is None — optional int (window position keys)
+                # default is None — optional int (window position) or optional string
                 if value is None:
                     result = None
+                elif isinstance(value, str):
+                    # Accept string values as-is (e.g. column_header_state base64 payload)
+                    result = value
                 else:
                     try:
                         result = int(value)
@@ -128,18 +130,11 @@ class Preferences:
     def get_prefs_dialog_settings(self):
         prefs = self.load_preferences()
         return {
-            'x': prefs.get('prefs_dialog_x'),
-            'y': prefs.get('prefs_dialog_y'),
             'width': prefs.get('prefs_dialog_width', 510),
             'height': prefs.get('prefs_dialog_height', 400),
         }
 
-    def save_prefs_dialog_settings(self, x, y, width, height):
+    def save_prefs_dialog_settings(self, width, height):
         prefs = self.load_preferences()
-        if not (x == 0 and y == 0):
-            prefs.update({'prefs_dialog_x': x, 'prefs_dialog_y': y})
-        else:
-            prefs.pop('prefs_dialog_x', None)
-            prefs.pop('prefs_dialog_y', None)
         prefs.update({'prefs_dialog_width': width, 'prefs_dialog_height': height})
         self.save_preferences(prefs)

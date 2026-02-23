@@ -6,7 +6,7 @@ import shutil
 import threading
 import time
 
-from PyQt6.QtCore import Qt, QTimer, QUrl
+from PyQt6.QtCore import QByteArray, Qt, QTimer, QUrl
 from PyQt6.QtGui import QColor, QDesktopServices, QFontMetrics, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QApplication, QCheckBox, QFileDialog, QHBoxLayout, QHeaderView,
@@ -47,7 +47,7 @@ class MainWindow(QMainWindow):
 
         self.resize(window_settings['width'], window_settings['height'])
         # Enforce a sensible minimum so the UI is never unusable.
-        self.setMinimumSize(500, 400)
+        self.setMinimumSize(650, 400)
         if window_settings['x'] is not None and window_settings['y'] is not None:
             x, y = window_settings['x'], window_settings['y']
             screen = QApplication.primaryScreen()
@@ -133,10 +133,67 @@ class MainWindow(QMainWindow):
         self.file_list_widget.setSortingEnabled(True)
 
         header = self.file_list_widget.horizontalHeader()
-        header.setStretchLastSection(False)
+        # setStretchLastSection(True) pins the right edge of the Saved column to
+        # the right edge of the table viewport so the header row always spans the
+        # full table width.  Leaving it at the Qt default of True would also work
+        # here, but the explicit call documents the intent and prevents a future
+        # maintainer from accidentally setting it to False, which would leave a
+        # blank gap on the right.
+        header.setStretchLastSection(True)
+        # Global safety-net minimum; per-column minimums are enforced in
+        # _on_column_resized based on the header label text width.
+        header.setMinimumSectionSize(40)
         for i in range(self.file_list_widget.columnCount()):
             header.setSectionResizeMode(i, QHeaderView.ResizeMode.Interactive)
-        header.resizeSection(0, 250)
+
+        # Compute per-column minimum widths from the header font metrics so that
+        # no column can ever be dragged narrower than its own label text.
+        _HEADER_H_PADDING = 24  # 12 px each side
+        _header_font_metrics = QFontMetrics(header.font())
+        _header_labels = ["File Name", "Format", "Dimensions", "Size", "Compressed", "Saved"]
+        self._column_min_widths = [
+            _header_font_metrics.horizontalAdvance(label) + _HEADER_H_PADDING
+            for label in _header_labels
+        ]
+
+        # Initial widths for columns 0–4; column 5 (Saved) auto-fills the rest
+        # via setStretchLastSection.  File Name is given the most space to
+        # comfortably display long filenames.
+        header.resizeSection(0, 260)  # File Name
+        header.resizeSection(1, 65)   # Format
+        header.resizeSection(2, 100)  # Dimensions
+        header.resizeSection(3, 60)   # Size
+        header.resizeSection(4, 92)   # Compressed
+        # Column 5 (Saved) is not assigned here; setStretchLastSection handles it.
+
+        # Reentrancy guard for _on_column_resized.  Also held True during
+        # restoreState() to suppress the flood of sectionResized signals Qt
+        # fires internally while applying the blob.
+        self._enforcing_column_size = False
+        header.sectionResized.connect(self._on_column_resized)
+
+        # Restore previously saved column widths if present.
+        saved_state = self.current_preferences.get('column_header_state')
+        if saved_state:
+            self._enforcing_column_size = True
+            try:
+                header.restoreState(QByteArray.fromBase64(saved_state.encode()))
+            finally:
+                self._enforcing_column_size = False
+
+            # restoreState overwrites the resize modes stored in the blob.
+            # Re-assert the required modes so a stale or corrupt blob cannot
+            # leave the header in an unexpected state.
+            for i in range(self.file_list_widget.columnCount()):
+                header.setSectionResizeMode(i, QHeaderView.ResizeMode.Interactive)
+            header.setStretchLastSection(True)
+
+            # Clamp any restored width that is below its per-column minimum
+            # (handles a hand-edited or version-mismatched prefs file).
+            for i in range(self.file_list_widget.columnCount() - 1):  # exclude stretch col
+                current = header.sectionSize(i)
+                if current < self._column_min_widths[i]:
+                    header.resizeSection(i, self._column_min_widths[i])
 
         self.file_list_widget.setAcceptDrops(True)
         self.file_list_widget.viewport().setAcceptDrops(True)
@@ -279,13 +336,66 @@ class MainWindow(QMainWindow):
         button.setMinimumWidth(total_width)
         button.setMaximumWidth(total_width)
 
+    def _on_column_resized(self, logical_index, old_size, new_size):
+        """Enforce per-column minimum widths and prevent columns from pushing
+        Saved (the stretch column) off the right edge of the viewport.
+
+        Called via the sectionResized signal.  The _enforcing_column_size flag
+        prevents the resizeSection call inside this handler from re-entering.
+        Column 5 (Saved) is the stretch column and is owned by Qt — never
+        attempt to resize it here.
+        """
+        if self._enforcing_column_size:
+            return
+        # The stretch column (col 5) is managed by Qt; never attempt to resize it.
+        if logical_index >= 5:
+            return
+
+        header = self.file_list_widget.horizontalHeader()
+        col_min = self._column_min_widths[logical_index]
+
+        # Lower bound: column must be at least as wide as its header label text.
+        clamped = max(new_size, col_min)
+
+        # Upper bound: prevent this column from growing so wide that the
+        # auto-stretched Saved column (col 5) drops below its own minimum.
+        viewport_width = self.file_list_widget.viewport().width()
+        other_fixed = sum(
+            header.sectionSize(i) for i in range(5) if i != logical_index
+        )
+        saved_min = self._column_min_widths[5]
+        max_allowed = viewport_width - other_fixed - saved_min
+        clamped = min(clamped, max(col_min, max_allowed))
+
+        if clamped != new_size:
+            self._enforcing_column_size = True
+            try:
+                header.resizeSection(logical_index, clamped)
+            finally:
+                self._enforcing_column_size = False
+
     # ── Window events ──────────────────────────────────────────────────────────
 
     def closeEvent(self, event):
-        """Save main window position and size when closing."""
-        self.preferences.save_main_window_settings(
-            self.x(), self.y(), self.width(), self.height()
-        )
+        """Save main window geometry and column layout when closing."""
+        prefs = self.preferences.load_preferences()
+
+        x, y, w, h = self.x(), self.y(), self.width(), self.height()
+        # Only update the stored position if it looks like a real screen
+        # location.  On some Wayland compositors QWidget.x()/y() always returns
+        # 0; saving (0, 0) would move the window to the screen corner on the
+        # next launch instead of letting the compositor place it naturally.
+        screen = QApplication.primaryScreen()
+        if screen and not (x == 0 and y == 0) and screen.availableGeometry().contains(x, y):
+            prefs['main_window_x'] = x
+            prefs['main_window_y'] = y
+        prefs['main_window_width'] = w
+        prefs['main_window_height'] = h
+
+        header_state = self.file_list_widget.horizontalHeader().saveState()
+        prefs['column_header_state'] = header_state.toBase64().data().decode()
+
+        self.preferences.save_preferences(prefs)
         super().closeEvent(event)
 
     # ── Drag-and-drop ──────────────────────────────────────────────────────────
@@ -307,6 +417,7 @@ class MainWindow(QMainWindow):
         processed_files = 0
         skipped_files = 0
 
+        self.file_list_widget.setSortingEnabled(False)
         for url in urls:
             try:
                 if os.path.isfile(url):
@@ -330,6 +441,7 @@ class MainWindow(QMainWindow):
                 logger.warning("Error processing dropped URL %s: %s", _sanitise_for_log(url), e)
                 skipped_files += 1
                 continue
+        self.file_list_widget.setSortingEnabled(True)
 
         if processed_files > 0 or skipped_files > 0:
             message = f"{processed_files} files added to the list"
@@ -398,12 +510,14 @@ class MainWindow(QMainWindow):
             added_count = 0
             skipped_count = 0
 
+            self.file_list_widget.setSortingEnabled(False)
             for file_path in files:
                 success, is_skipped = self._try_add_file_to_list(file_path)
                 if success:
                     added_count += 1
                 else:
                     skipped_count += is_skipped
+            self.file_list_widget.setSortingEnabled(True)
 
             message = f"Added {added_count} files to the list"
             if skipped_count > 0:
@@ -419,6 +533,7 @@ class MainWindow(QMainWindow):
             added_count = 0
             skipped_count = 0
 
+            self.file_list_widget.setSortingEnabled(False)
             for root, dirs, files in os.walk(folder_path):
                 for file_name in files:
                     file_path = os.path.join(root, file_name)
@@ -427,6 +542,7 @@ class MainWindow(QMainWindow):
                         added_count += 1
                     else:
                         skipped_count += is_skipped
+            self.file_list_widget.setSortingEnabled(True)
 
             message = f"Added {added_count} files from folder to the list"
             if skipped_count > 0:
@@ -449,9 +565,6 @@ class MainWindow(QMainWindow):
             dimensions = get_image_dimensions(file_path)
             size = get_file_size(file_path)
 
-            # Disable sorting while inserting so row positions are predictable
-            self.file_list_widget.setSortingEnabled(False)
-
             row_count = self.file_list_widget.rowCount()
             self.file_list_widget.insertRow(row_count)
 
@@ -468,7 +581,6 @@ class MainWindow(QMainWindow):
 
             self.file_list.append(file_path)
 
-            self.file_list_widget.setSortingEnabled(True)
             self.update_info_widget()
             self.reset_progress_bar()
 
@@ -476,7 +588,6 @@ class MainWindow(QMainWindow):
 
         except Exception:
             logger.exception("Failed to add file to list: %s", _sanitise_for_log(file_path))
-            self.file_list_widget.setSortingEnabled(True)
             return False
 
     def clear_file_list(self):
@@ -503,11 +614,12 @@ class MainWindow(QMainWindow):
 
         window_settings = self.preferences.get_prefs_dialog_settings()
         dialog.resize(window_settings['width'], window_settings['height'])
-        if window_settings['x'] is not None and window_settings['y'] is not None:
-            x, y = window_settings['x'], window_settings['y']
-            screen = QApplication.primaryScreen()
-            if screen and screen.availableGeometry().contains(x, y):
-                dialog.move(x, y)
+        # Always open centered over the main window.
+        main_geo = self.geometry()
+        dialog.move(
+            main_geo.x() + (main_geo.width() - dialog.width()) // 2,
+            main_geo.y() + (main_geo.height() - dialog.height()) // 2,
+        )
 
         if dialog.exec():
             self.current_preferences = dialog.current_preferences

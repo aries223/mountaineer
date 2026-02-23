@@ -407,14 +407,12 @@ class PreferencesDialog(QDialog):
         self.webp_value_label.setText(str(value))
         self.current_preferences['webp_compression_level'] = value
 
-    def closeEvent(self, event):
-        """Save window position and size when closing.
+    def done(self, result):
+        """Save dialog size whenever the dialog closes, regardless of how it
+        was dismissed (Save button, Cancel button, or window-manager close).
 
-        Geometry is saved on both Accept and Cancel so the user's preferred
-        window size is remembered even when dismissing without saving changes.
-        The Wayland origin guard lives in save_prefs_dialog_settings().
+        Qt routes accept(), reject(), and closeEvent through done(), so this
+        is the single correct place to persist state on close.
         """
-        self.preferences.save_prefs_dialog_settings(
-            self.x(), self.y(), self.width(), self.height()
-        )
-        super().closeEvent(event)
+        self.preferences.save_prefs_dialog_settings(self.width(), self.height())
+        super().done(result)
