@@ -46,10 +46,54 @@ class Preferences:
         """Load preferences from disk, falling back to defaults on error."""
         try:
             with open(self.pref_file, 'r') as f:
-                return json.load(f)
+                loaded = json.load(f)
+                return self._validate_preferences(loaded)
         except Exception as e:
             logger.warning("Error loading preferences: %s", e)
             return self.DEFAULT_PREFERENCES.copy()
+
+    _COMPRESSION_RANGES: dict = {
+        'jpeg_compression_level': (0, 100),
+        'png_compression_level':  (0, 6),
+        'gif_lossy_level':        (0, 200),
+        'webp_compression_level': (0, 100),
+    }
+
+    def _validate_preferences(self, loaded: dict) -> dict:
+        validated: dict = {}
+        for k, default in self.DEFAULT_PREFERENCES.items():
+            value = loaded.get(k, default)
+            original = loaded.get(k)
+
+            if isinstance(default, bool):
+                if isinstance(value, str):
+                    result = value.lower() in ("true", "1")
+                else:
+                    result = bool(value)
+            elif isinstance(default, int):
+                try:
+                    result = int(value)
+                except (TypeError, ValueError):
+                    result = default
+            else:
+                # default is None — optional int (window position keys)
+                if value is None:
+                    result = None
+                else:
+                    try:
+                        result = int(value)
+                    except (TypeError, ValueError):
+                        result = None
+
+            if k in self._COMPRESSION_RANGES:
+                lo, hi = self._COMPRESSION_RANGES[k]
+                result = max(lo, min(hi, result))
+
+            if original is not None and result != original:
+                logger.warning("Preference '%s': invalid value %r, using %r", k, original, result)
+
+            validated[k] = result
+        return validated
 
     def save_preferences(self, preferences):
         """Write preferences dict to disk."""
