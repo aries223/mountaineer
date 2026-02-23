@@ -55,6 +55,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Compression failure details were not written to the log file; failures now emit `logger.error()` with the error detail, and skipped files (no longer exists, unsupported format) now emit `logger.warning()`
+- Log file (`~/.mountaineer/mountaineer.log`) was not being created due to a broken `os.fdopen`+`StreamHandler`+`basicConfig` logging setup; replaced with `FileHandler` on a pre-created `0600` file, with the root logger configured directly via `addHandler`
 - Preferences data loss on save: settings are now merged into the existing file instead of overwriting it
 - Sort desync data corruption: file paths are now read from `UserRole` data rather than positional indices, which broke after any column sort
 - Thread-safety race condition: table data is snapshotted before the compression thread is spawned
