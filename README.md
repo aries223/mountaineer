@@ -23,13 +23,13 @@ Mountaineer is a high quality image compression utility for Linux that batch com
 ### RPM (Fedora / RHEL)
 
 ```bash
-sudo dnf install Mountaineer-1.1.0.rpm
+sudo dnf install Mountaineer-1.2.0.rpm
 ```
 
 ### DEB (Debian / Ubuntu)
 
 ```bash
-sudo dpkg -i Mountaineer-1.1.0.deb
+sudo dpkg -i Mountaineer-1.2.0.deb
 ```
 
 ### Run from source

@@ -1,7 +1,7 @@
 # Mountaineer — User Guide
 
-**Revision:** 1.0
-**Date:** 2026-02-21
+**Revision:** 1.2
+**Date:** 2026-02-23
 
 ---
 
