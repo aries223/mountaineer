@@ -52,4 +52,6 @@ Mountaineer is developed using AI assistance yada yada yada...
 
 <br/>
 <br/>
-[![Star History Chart](https://api.star-history.com/svg?repos=aries223/mountaineer&type=Date)](https://star-history.com/#aries223/mountaineer&Date)   
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=aries223/mountaineer&type=date&legend=top-left)](https://www.star-history.com/#aries223/mountaineer&type=date&legend=top-left)
