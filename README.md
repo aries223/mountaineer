@@ -29,6 +29,7 @@ sudo dnf install Mountaineer-1.2.1.rpm
 ### DEB (Debian / Ubuntu)
 The oxipng library is not available in the Debian/Ubuntu repos for some reason. You will need to install it first.
 https://github.com/oxipng/oxipng/releases
+<br/>
 After that install Mountaineer:
 ```bash
 sudo apt install Mountaineer-1.2.1.deb
