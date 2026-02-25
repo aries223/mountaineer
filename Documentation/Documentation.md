@@ -59,8 +59,8 @@ Open Preferences with Ctrl+, or the Preferences button.
 | Format | Range | Default | Notes |
 |--------|-------|---------|-------|
 | JPEG   | 0–100 | 95      | Higher value = better quality |
-| PNG    | 0–6   | 1       | Lower value = higher quality |
-| GIF    | 0–200 | 40      | 0 = lossless |
+| PNG    | 0–6   | 1       | Lower value = better quality |
+| GIF    | 0–200 | 40      | Lower value = better quality|
 | WebP   | 0–100 | 80      | Higher value = better quality |
 
 ### Checkboxes
