@@ -40,7 +40,7 @@ Mountaineer is developed, tested and used exclusively on Fedora KDE. I've create
 
 ## Documentation
 
-A full user guide is available  [`Documentation/Documentation.md`](Here).
+A full user guide is available  [`Here`](Documentation/Documentation.md).
 
 ## License
 
