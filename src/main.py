@@ -38,6 +38,7 @@ def _setup_logging():
 def main():
     _setup_logging()
     app = QApplication(sys.argv)
+    app.setDesktopFileName("mountaineer")
     window = MainWindow()
     window.show()
     sys.exit(app.exec())

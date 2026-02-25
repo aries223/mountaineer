@@ -19,8 +19,8 @@ class AboutDialog(QDialog):
 
         # Try installed path first, then fall back to the source-relative logo
         logo_candidates = [
-            '/usr/share/pixmaps/mountaineer.png',
-            os.path.join(os.path.dirname(__file__), 'logo', 'mountaineer.png'),
+            '/usr/share/pixmaps/mountaineer.svg',
+            os.path.join(os.path.dirname(__file__), 'logo', 'mountaineer.svg'),
         ]
         logo_path = next((p for p in logo_candidates if os.path.exists(p)), None)
 
@@ -38,10 +38,10 @@ class AboutDialog(QDialog):
 
         about_text = """
 <center><h1>Mountaineer</h1>
-A powerful image compression tool for <br/>
-photographers and designers.<br/>
-<p><b>Version:</b> 1.2.0<br/></p>
-<p>©aries223 2025</p></center>
+A high quality image compression utility<br/>
+for photographers and designers.<br/>
+<p><b>Version:</b> 1.2.1<br/></p>
+<p>©2025-2026 aries223</p></center>
 """
 
         text_label = QLabel(about_text)
@@ -52,7 +52,7 @@ photographers and designers.<br/>
         # is invoked automatically.  This also adapts the link colour to the
         # active Qt palette, avoiding a hardcoded colour that looks wrong on
         # dark themes.
-        github_label = QLabel('<a href="https://github.com/aries223/mountaineer">GitHub</a>')
+        github_label = QLabel('<a href="https://mountaineer-app.com/">mountaineer-app.com</a>')
         github_label.setOpenExternalLinks(True)
         github_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(github_label)
