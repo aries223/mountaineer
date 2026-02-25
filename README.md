@@ -36,7 +36,7 @@ After that install Mountaineer:
 sudo apt install Mountaineer-1.2.1.deb
 ```
 #### Testing
-Mountaineer is developed, tested and used exclusively on Fedora KDE. I've created a .deb for Debian/Ubuntu systems, but dont test it there past making sure it installs and runs.
+Mountaineer is developed, tested and used exclusively on Fedora KDE. I've created a .deb for Debian/Ubuntu systems, but dont test it there past making sure it installs and runs. If you see Debian/Ubuntu related problems please create an issue and I'll see if I can work it out.
 
 ## Documentation
 
