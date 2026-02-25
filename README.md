@@ -8,8 +8,8 @@ Mountaineer is a high quality image compression utility for Linux that batch com
 
 ## Features
 
-- Batch compression via file dialog, Add Folder (recursive), or drag-and-drop
 - Supports JPEG, PNG, GIF, and WebP formats
+- Batch compression via file dialog, Add Folder (recursive), or drag-and-drop
 - In-place compression — files are overwritten directly, no renamed copies
 - Configurable quality settings per format
 - Lossless mode, strip metadata, and warn-before-overwrite toggles in Preferences
@@ -27,29 +27,13 @@ sudo dnf install Mountaineer-1.2.1.rpm
 ```
 
 ### DEB (Debian / Ubuntu)
+The oxipng library is not available in the Debian/Ubuntu repos for some reason. You will need to install it first.
+https://github.com/oxipng/oxipng/releases
 
 ```bash
-sudo dpkg -i Mountaineer-1.2.1.deb
+sudo apt install Mountaineer-1.2.1.deb
 ```
 
-### Run from source
-
-```bash
-pip install PyQt6 pillow
-sudo dnf install jpegoptim oxipng gifsicle libwebp-tools  # Fedora
-python src/main.py
-```
-
-## Keyboard Shortcuts
-
-| Shortcut        | Action           |
-|-----------------|------------------|
-| Ctrl+O          | Add Files        |
-| Ctrl+Shift+O    | Add Folder       |
-| Ctrl+A          | Select All       |
-| Delete          | Remove Selected  |
-| Ctrl+,          | Preferences      |
-| Ctrl+Q          | Quit             |
 
 ## Documentation
 
@@ -61,4 +45,4 @@ GNU AGPLv3. See the [LICENSE](LICENSE) file for details.
 
 ## AI Disclaimer
 
-Mountaineer is developed using AI-assisted coding tools (AIAC). Care is taken to review all generated code for correctness, security, and adherence to standards.
+Mountaineer is developed using AI assistance yada yada yada...
