@@ -30,11 +30,13 @@ sudo dnf install Mountaineer-1.2.1.rpm
 The oxipng library is not available in the Debian/Ubuntu repos for some reason. You will need to install it first.
 https://github.com/oxipng/oxipng/releases
 <br/>
+<br/>
 After that install Mountaineer:
 ```bash
 sudo apt install Mountaineer-1.2.1.deb
 ```
-
+#### Testing
+Mountaineer is developed, tested and used exclusively on Fedora KDE. I've created a .deb for Debian/Ubuntu systems, but dont test it there past making sure it installs and runs.
 
 ## Documentation
 
