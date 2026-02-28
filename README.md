@@ -1,5 +1,5 @@
 <p align="center">
-<img src="https://github.com/aries223/mountaineer/blob/main/src/ui/logo/mountaineer.png">
+<img src="https://mountaineer-app.com/mountaineer.svg">
 </p>
 
 # Mountaineer
