@@ -20,6 +20,11 @@ Mountaineer is a high quality image compression utility for Linux that batch com
 
 ## Installation
 
+### Requirements
+```
+Python >= 3.8
+```
+
 ### RPM (Fedora / RHEL)
 
 ```bash
