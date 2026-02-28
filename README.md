@@ -1,5 +1,5 @@
 <p align="center">
-<img src="https://mountaineer-app.com/mountaineer.svg" maxwidth="200">
+<img src="https://mountaineer-app.com/mountaineer.svg" width="200" height="auto">
 </p>
 
 # Mountaineer
