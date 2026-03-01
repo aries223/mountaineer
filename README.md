@@ -48,7 +48,7 @@ Mountaineer is developed, tested and used exclusively on Fedora KDE. I've create
 
 ## Documentation
 
-A full user guide is available  [`Here`](Documentation/Documentation.md).
+A full user guide is available [`Here`](https://mountaineer-app.com/docs.html).
 
 ## License
 
