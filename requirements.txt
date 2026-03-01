@@ -1,2 +1,2 @@
 PyQt6
-pillow
+pillow>=10.0.1
