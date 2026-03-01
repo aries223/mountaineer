@@ -9,7 +9,7 @@ Next release: **v1.3.0**
 
 ### App
 
-- [ ] **Bumo minimum Python version to 3.10**
+- [ ] **Bump minimum Python version to 3.10**
 - [ ] **Improve .gif compression options**
   - Color Pallete reduction
    - Remove every n frames
