@@ -23,6 +23,44 @@ class WebpCompressor(BaseCompressor):
     def __init__(self) -> None:
         super().__init__()
 
+    def _atomic_replace(self, tmp_path: str, input_path: str, success: bool) -> bool:
+        """Finalise an in-place compression attempt using a temporary file.
+
+        On success, atomically replaces *input_path* with *tmp_path* via
+        ``os.replace()``.  Both paths must live on the same filesystem (ensured
+        by the caller) so the rename is guaranteed to be atomic.
+
+        On failure, removes *tmp_path* so no orphaned temporary files remain.
+
+        Args:
+            tmp_path: Absolute path to the temporary file written by cwebp.
+            input_path: Absolute path to the original file to be replaced.
+            success: Whether the cwebp subprocess completed without error.
+
+        Returns:
+            True when the replacement succeeds, False on any filesystem error
+            or when *success* is False (details written to ``self.last_error``).
+        """
+        if success:
+            try:
+                os.replace(tmp_path, input_path)
+            except Exception as exc:
+                self.last_error = f"Failed to replace original file: {exc}"
+                logger.error(self.last_error)
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+                return False
+        else:
+            # Clean up the temp file on failure so no orphaned files remain.
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+
+        return success
+
     def compress_file(
         self,
         input_path: str,
@@ -65,6 +103,20 @@ class WebpCompressor(BaseCompressor):
 
         in_place = output_path is None or output_path == input_path
 
+        # Guard against filenames that start with a hyphen, which cwebp would
+        # misinterpret as a flag.  cwebp does not support POSIX end-of-options
+        # ("--") because "-o" must follow the positional input argument and
+        # cwebp would treat it as a second positional file rather than the
+        # output flag.  Rejecting such filenames is the correct mitigation.
+        # This check must come before the temp-file creation block so that no
+        # orphaned temp file is left on disk when the path is rejected.
+        if os.path.basename(input_path).startswith("-"):
+            self.last_error = (
+                f"Refusing to process file with leading hyphen in name: {input_path!r}"
+            )
+            logger.error(self.last_error)
+            return False
+
         if in_place:
             # Create the temp file in the same directory as the source so that
             # os.replace() is guaranteed to be an atomic same-filesystem rename.
@@ -97,38 +149,11 @@ class WebpCompressor(BaseCompressor):
         if strip_metadata:
             cmd.extend(["-metadata", "none"])
 
-        # Guard against filenames that start with a hyphen, which cwebp would
-        # misinterpret as a flag.  cwebp does not support POSIX end-of-options
-        # ("--") because "-o" must follow the positional input argument and
-        # cwebp would treat it as a second positional file rather than the
-        # output flag.  Rejecting such filenames is the correct mitigation.
-        if os.path.basename(input_path).startswith("-"):
-            self.last_error = (
-                f"Refusing to process file with leading hyphen in name: {input_path!r}"
-            )
-            return False
-
         cmd.extend([input_path, "-o", effective_output])
 
         success = self.run_command(cmd)
 
         if in_place:
-            if success:
-                try:
-                    os.replace(tmp_path, input_path)
-                except Exception as exc:
-                    self.last_error = f"Failed to replace original file: {exc}"
-                    logger.error(self.last_error)
-                    try:
-                        os.unlink(tmp_path)
-                    except OSError:
-                        pass
-                    return False
-            else:
-                # Clean up the temp file on failure so no orphaned files remain.
-                try:
-                    os.unlink(tmp_path)
-                except OSError:
-                    pass
+            return self._atomic_replace(tmp_path, input_path, success)
 
         return success
