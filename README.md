@@ -4,6 +4,9 @@
 
 # Mountaineer
 
+[![Known Vulnerabilities](https://snyk.io/test/github/aries223/mountaineer/badge.svg)](https://snyk.io/test/github/aries223/mountaineer)
+<!-- TODO: Add SonarQube badge once URL is available -->
+
 Mountaineer is a high quality image compression utility for Linux that batch compresses JPEG, PNG, GIF, and WebP images. It uses the best available compression libraries behind a modern interface, letting you add files or folders, tune quality settings per format, and compress in place.
 
 ## Features
@@ -53,7 +56,7 @@ GNU AGPLv3. See the [LICENSE](LICENSE) file for details.
 
 ## AI Disclaimer
 
-Mountaineer is developed using AI assistance yada yada yada...
+Mountaineer is developed using AI assistance. We take the upmost care to prevent AI 'slop' and review with Snyk and SonarQube to maintain quality a code base.
 
 <br/>
 <br/>
