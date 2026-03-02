@@ -153,14 +153,14 @@ class Preferences:
                 else:
                     logger.warning(
                         "Preference '%s': expected int for range clamp, got %r; using default",
-                        k, _sanitise_for_log(str(result)),
+                        _sanitise_for_log(str(k)), _sanitise_for_log(str(result)),
                     )
                     result = default
 
             if key_was_present and result != loaded[k]:
                 logger.warning(
                     "Preference '%s': invalid value %r, using %r",
-                    k, _sanitise_for_log(str(loaded[k])), _sanitise_for_log(str(result)),
+                    _sanitise_for_log(str(k)), _sanitise_for_log(str(loaded[k])), _sanitise_for_log(str(result)),
                 )
 
             validated[k] = result
