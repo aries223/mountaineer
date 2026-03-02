@@ -8,12 +8,45 @@ from compression.base_compressor import _sanitise_for_log
 
 logger = logging.getLogger(__name__)
 
+# Fix J: allowlists for string preference keys whose values must be drawn from
+# a finite set.  These are used by Preferences._validate_preferences() and kept
+# here at module level so the same constants can be imported by other modules
+# that need to validate these values independently (e.g. gif_compressor.py
+# defines its own parallel frozenset for the same dither methods).
+_DITHER_METHODS = frozenset({
+    'floyd-steinberg', 'ro64', 'o8', 'o16', 'o32', 'o64',
+    'ordered', 'blue_noise', 'halftone',
+})
+_RESIZE_MODES = frozenset({'resize', 'scale'})
+
 
 class Preferences:
     DEFAULT_PREFERENCES = {
         'jpeg_compression_level': 90,
         'png_compression_level': 1,
         'gif_lossy_level': 20,
+        'gif_resize_enabled': False,
+        'gif_resize_mode': 'resize',
+        'gif_resize_width': 0,
+        'gif_resize_height': 0,
+        'gif_scale_x': 1.0,
+        'gif_scale_y': 0.0,
+        'gif_colors_enabled': False,
+        'gif_colors_num': 256,
+        'gif_dither_enabled': False,
+        'gif_dither_method': 'floyd-steinberg',
+        'gif_remove_frames_enabled': False,
+        'gif_remove_frames_n': 2,
+        'gif_remove_frames_offset': 0,
+        'gif_loopcount_enabled': False,
+        'gif_loopcount_forever': True,
+        'gif_loopcount_value': 1,
+        'gif_delay_enabled': False,
+        'gif_delay_value': 10,
+        'gif_optimize_enabled': False,
+        'gif_optimize_level': 2,
+        'gif_optimize_keep_empty': False,
+        'gif_unoptimize_enabled': False,
         'webp_compression_level': 90,
         'lossless_compression': False,
         'strip_metadata': True,
@@ -28,14 +61,33 @@ class Preferences:
 
         # Preferences dialog settings
         'prefs_dialog_width': 510,
-        'prefs_dialog_height': 400,
+        'prefs_dialog_height': 750,
     }
 
     _COMPRESSION_RANGES: dict[str, tuple[int, int]] = {
-        'jpeg_compression_level': (0, 100),
-        'png_compression_level':  (0, 6),
-        'gif_lossy_level':        (0, 200),
-        'webp_compression_level': (0, 100),
+        'jpeg_compression_level':   (0, 100),
+        'png_compression_level':    (0, 6),
+        'gif_lossy_level':          (0, 200),
+        'gif_colors_num':           (2, 256),
+        'gif_remove_frames_n':      (2, 20),
+        # Fix K: gif_remove_frames_offset is always 0 (even frames) or 1 (odd
+        # frames); clamp to that range so a corrupted prefs file cannot supply
+        # an out-of-range value to the gifsicle frame-selector argument.
+        'gif_remove_frames_offset': (0, 1),
+        'gif_delay_value':          (0, 65535),
+        # Fix O (part 2): lower bound is 0 so callers can explicitly request
+        # zero loops.  Previously this was 1, which made 0 unreachable.
+        'gif_loopcount_value':      (0, 65535),
+        'gif_optimize_level':       (1, 3),
+        'webp_compression_level':   (0, 100),
+    }
+
+    # Fix J: mapping from preference key → allowlist frozenset.  Any key listed
+    # here whose stored value is not a member of its frozenset will be replaced
+    # by its DEFAULT_PREFERENCES default and a warning will be logged.
+    _STRING_ALLOWLISTS: dict[str, frozenset] = {
+        'gif_dither_method': _DITHER_METHODS,
+        'gif_resize_mode':   _RESIZE_MODES,
     }
 
     def __init__(self):
@@ -68,9 +120,9 @@ class Preferences:
 
     def _coerce_value(
         self,
-        value: bool | int | str | None,
-        default: bool | int | str | None,
-    ) -> bool | int | str | None:
+        value: bool | int | float | str | None,
+        default: bool | int | float | str | None,
+    ) -> bool | int | float | str | None:
         """Coerce a raw preference value to the type implied by its default.
 
         The type of ``default`` is the sole arbiter of coercion strategy:
@@ -104,6 +156,12 @@ class Preferences:
         if isinstance(default, int):
             try:
                 return int(value)
+            except (TypeError, ValueError):
+                return default
+
+        if isinstance(default, float):
+            try:
+                return float(value)
             except (TypeError, ValueError):
                 return default
 
@@ -152,6 +210,20 @@ class Preferences:
                     result = max(lo, min(hi, result))
                 else:
                     logger.warning("Preference '%s': expected int for range clamp, got %r; using default", _sanitise_for_log(str(k)), _sanitise_for_log(str(result)))  # NOSONAR
+                    result = default
+
+            # Fix J: validate string-valued keys against their allowlists.
+            # A stale or externally-edited prefs file could store an
+            # unrecognised string that would be forwarded to gifsicle as an
+            # argument value; rejecting it here and substituting the safe
+            # default prevents that from reaching the subprocess layer.
+            if k in self._STRING_ALLOWLISTS:
+                if result not in self._STRING_ALLOWLISTS[k]:
+                    logger.warning(
+                        "Preference '%s': invalid value %r, using default",
+                        _sanitise_for_log(str(k)),
+                        _sanitise_for_log(str(result)),
+                    )
                     result = default
 
             if key_was_present and result != loaded[k]:

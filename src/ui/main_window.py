@@ -787,11 +787,34 @@ class MainWindow(QMainWindow):
         elif format_str == "GIF":
             compressor = GifCompressor()
             success = compressor.compress_file(
-                file_path,
-                None,
+                file_path, None,
                 lossless=prefs['lossless_compression'],
                 strip_metadata=prefs['strip_metadata'],
-                gif_lossy_level=prefs.get('gif_lossy_level', 40),
+                # Fix L: default matches DEFAULT_PREFERENCES (20), not the
+                # stale placeholder value of 40 that was here before.
+                gif_lossy_level=prefs.get('gif_lossy_level', 20),
+                resize_enabled=prefs.get('gif_resize_enabled', False),
+                resize_mode=prefs.get('gif_resize_mode', 'resize'),
+                resize_width=prefs.get('gif_resize_width', 0),
+                resize_height=prefs.get('gif_resize_height', 0),
+                scale_x=prefs.get('gif_scale_x', 1.0),
+                scale_y=prefs.get('gif_scale_y', 0.0),
+                colors_enabled=prefs.get('gif_colors_enabled', False),
+                colors_num=prefs.get('gif_colors_num', 256),
+                dither_enabled=prefs.get('gif_dither_enabled', False),
+                dither_method=prefs.get('gif_dither_method', 'floyd-steinberg'),
+                remove_frames_enabled=prefs.get('gif_remove_frames_enabled', False),
+                remove_frames_n=prefs.get('gif_remove_frames_n', 2),
+                remove_frames_offset=prefs.get('gif_remove_frames_offset', 0),
+                loopcount_enabled=prefs.get('gif_loopcount_enabled', False),
+                loopcount_forever=prefs.get('gif_loopcount_forever', True),
+                loopcount_value=prefs.get('gif_loopcount_value', 1),
+                delay_enabled=prefs.get('gif_delay_enabled', False),
+                delay_value=prefs.get('gif_delay_value', 10),
+                optimize_enabled=prefs.get('gif_optimize_enabled', False),
+                optimize_level=prefs.get('gif_optimize_level', 2),
+                optimize_keep_empty=prefs.get('gif_optimize_keep_empty', False),
+                unoptimize_enabled=prefs.get('gif_unoptimize_enabled', False),
             )
         elif format_str == "WEBP":
             compressor = WebpCompressor()

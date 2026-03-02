@@ -56,7 +56,7 @@ GNU AGPLv3. See the [LICENSE](LICENSE) file for details.
 
 ## AI Disclaimer
 
-Mountaineer is developed using AI assistance. We take the upmost care to prevent AI 'slop' and review with Snyk and SonarQube to maintain quality a code base.
+Mountaineer is developed using AI assistance. We take the upmost care to prevent AI 'slop' and review with Snyk and SonarQube to maintain a quality code base.
 
 <br/>
 <br/>
