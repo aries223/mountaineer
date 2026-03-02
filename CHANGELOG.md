@@ -10,11 +10,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Snyk and SonarQube quality badges added to README and SECURITY.md
+
 ### Changed
 
 - Minimum Python version raised from 3.8 to 3.12
+- `.python-version` file added to declare Python 3.12 for tooling (pyenv, Snyk)
+- Minimum Pillow version pinned to `>=10.3.0` to address CVEs including CVE-2023-5129
 
 ### Fixed
+
+- `WebpCompressor.compress_file` refactored to reduce cognitive complexity from 25 to below 15; extracted `_atomic_replace` helper
+- Pre-existing temp file leak in `WebpCompressor` when filename starts with a hyphen; guard moved before `mkstemp`
+- Missing `logger.error` call on leading-hyphen rejection path in `WebpCompressor`
+- `dropEvent` in `MainWindow` refactored to reduce cognitive complexity from 30 to below 15; extracted `_process_dropped_url` and `_process_dropped_dir` helpers
+- `_run_compression` in `MainWindow` refactored to reduce cognitive complexity from 36 to below 15; extracted `_compress_file_by_format` and `_emit_compression_result` helpers
+- `_validate_preferences` in `Preferences` refactored to reduce cognitive complexity from 26 to below 15; extracted `_coerce_value` helper
+- `_validate_preferences` warning suppressed for keys with explicit `null` values in prefs file; fixed with `key_was_present` pattern
+- Missing `isinstance(result, int)` guard before range clamping in `_validate_preferences`
+- Missing explicit `str` coercion branch in `_coerce_value` for string-defaulted preference keys
+- `os.chmod` in `Preferences.__init__` wrapped in `try/except OSError` to prevent startup crash on restricted filesystems
+
+
 
 ## [1.2.1] - 2026-02-24
 
