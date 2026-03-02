@@ -419,28 +419,9 @@ class MainWindow(QMainWindow):
 
         self.file_list_widget.setSortingEnabled(False)
         for url in urls:
-            try:
-                if os.path.isfile(url):
-                    success, is_skipped = self._try_add_file_to_list(url)
-                    if success:
-                        processed_files += 1
-                    else:
-                        skipped_files += is_skipped
-                elif os.path.isdir(url):
-                    for root, dirs, files in os.walk(url):
-                        for file_name in files:
-                            file_path = os.path.join(root, file_name)
-                            success, is_skipped = self._try_add_file_to_list(file_path)
-                            if success:
-                                processed_files += 1
-                            else:
-                                skipped_files += is_skipped
-                else:
-                    skipped_files += 1
-            except Exception as e:
-                logger.warning("Error processing dropped URL %s: %s", _sanitise_for_log(url), e)
-                skipped_files += 1
-                continue
+            added, skipped = self._process_dropped_url(url)
+            processed_files += added
+            skipped_files += skipped
         self.file_list_widget.setSortingEnabled(True)
 
         if processed_files > 0 or skipped_files > 0:
@@ -452,6 +433,59 @@ class MainWindow(QMainWindow):
             self.status_label.setText("No valid files found in drop")
 
         event.acceptProposedAction()
+
+    def _process_dropped_url(self, url: str) -> tuple:
+        """Process a single dropped URL and return ``(processed_count, skipped_count)``.
+
+        Handles the three cases — regular file, directory, and everything else —
+        and wraps the entire operation in a broad exception guard so that one
+        bad path cannot abort the rest of the drop.
+
+        Args:
+            url: Local filesystem path decoded from the dropped URL.
+
+        Returns:
+            A ``(processed_count, skipped_count)`` tuple reflecting the files
+            accepted and rejected for this URL.
+        """
+        try:
+            if os.path.isfile(url):
+                success, is_skipped = self._try_add_file_to_list(url)
+                if success:
+                    return 1, 0
+                return 0, is_skipped
+            if os.path.isdir(url):
+                return self._process_dropped_dir(url)
+            # Path exists but is neither a regular file nor a directory (e.g. a
+            # device node or a broken symlink resolved to nothing).
+            return 0, 1
+        except Exception as e:
+            logger.warning(
+                "Error processing dropped URL %s: %s", _sanitise_for_log(url), e
+            )
+            return 0, 1
+
+    def _process_dropped_dir(self, dir_path: str) -> tuple:
+        """Walk *dir_path* recursively and add every supported image file found.
+
+        Args:
+            dir_path: Absolute path to the directory to traverse.
+
+        Returns:
+            A ``(processed_count, skipped_count)`` tuple reflecting the files
+            accepted and rejected during the walk.
+        """
+        processed_files = 0
+        skipped_files = 0
+        for root, _dirs, files in os.walk(dir_path):
+            for file_name in files:
+                file_path = os.path.join(root, file_name)
+                success, is_skipped = self._try_add_file_to_list(file_path)
+                if success:
+                    processed_files += 1
+                else:
+                    skipped_files += is_skipped
+        return processed_files, skipped_files
 
     # ── File list helpers ──────────────────────────────────────────────────────
 
