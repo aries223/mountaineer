@@ -160,8 +160,8 @@ class Preferences:
             if key_was_present and result != loaded[k]:
                 logger.warning(
                     "Preference '%s': invalid value %r, using %r",
-                    _sanitise_for_log(str(k)), _sanitise_for_log(str(loaded[k])), _sanitise_for_log(str(result)),  # NOSONAR
-                )
+                    _sanitise_for_log(str(k)), _sanitise_for_log(str(loaded[k])), _sanitise_for_log(str(result)),
+                )  # NOSONAR
 
             validated[k] = result
         return validated
