@@ -151,17 +151,11 @@ class Preferences:
                 if isinstance(result, int):
                     result = max(lo, min(hi, result))
                 else:
-                    logger.warning(
-                        "Preference '%s': expected int for range clamp, got %r; using default",
-                        _sanitise_for_log(str(k)), _sanitise_for_log(str(result)),
-                    )
+                    logger.warning("Preference '%s': expected int for range clamp, got %r; using default", _sanitise_for_log(str(k)), _sanitise_for_log(str(result)))  # NOSONAR
                     result = default
 
             if key_was_present and result != loaded[k]:
-                logger.warning(
-                    "Preference '%s': invalid value %r, using %r",
-                    _sanitise_for_log(str(k)), _sanitise_for_log(str(loaded[k])), _sanitise_for_log(str(result)),
-                )
+                logger.warning("Preference '%s': invalid value %r, using %r", _sanitise_for_log(str(k)), _sanitise_for_log(str(loaded[k])), _sanitise_for_log(str(result)))  # NOSONAR
 
             validated[k] = result
         return validated
