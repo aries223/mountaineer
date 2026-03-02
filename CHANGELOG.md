@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Missing `isinstance(result, int)` guard before range clamping in `_validate_preferences`
 - Missing explicit `str` coercion branch in `_coerce_value` for string-defaulted preference keys
 - `os.chmod` in `Preferences.__init__` wrapped in `try/except OSError` to prevent startup crash on restricted filesystems
+- Log injection vulnerability (S5145) fixed in `preferences.py`; user-controlled preference values sanitised via `_sanitise_for_log` before logging
 
 
 
