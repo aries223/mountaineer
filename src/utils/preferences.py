@@ -4,6 +4,8 @@ import json
 import logging
 import os
 
+from compression.base_compressor import _sanitise_for_log
+
 logger = logging.getLogger(__name__)
 
 
@@ -151,12 +153,15 @@ class Preferences:
                 else:
                     logger.warning(
                         "Preference '%s': expected int for range clamp, got %r; using default",
-                        k, result,
+                        k, _sanitise_for_log(str(result)),
                     )
                     result = default
 
             if key_was_present and result != loaded[k]:
-                logger.warning("Preference '%s': invalid value %r, using %r", k, loaded[k], result)
+                logger.warning(
+                    "Preference '%s': invalid value %r, using %r",
+                    k, _sanitise_for_log(str(loaded[k])), _sanitise_for_log(str(result)),
+                )
 
             validated[k] = result
         return validated
