@@ -739,12 +739,157 @@ class MainWindow(QMainWindow):
         self._safe_update_status(message)
         self._set_compression_running(False)
 
-    def _run_compression(self, snapshot, total_files):
+    def _compress_file_by_format(
+        self,
+        file_path: str,
+        format_str: str,
+        prefs: dict,
+    ) -> tuple:
+        """Instantiate the correct compressor and run it for *file_path*.
+
+        Dispatches on *format_str* (as returned by ``get_file_format``) to the
+        appropriate ``XxxCompressor`` subclass, forwarding the relevant
+        preference keys.  When the format is not recognised the method logs a
+        warning, emits a status signal, and returns ``(None, False)`` so the
+        caller can increment its failure counter without any further branching.
+
+        Args:
+            file_path: Absolute path to the image file to compress.
+            format_str: Upper-case format token, e.g. ``"JPEG"``, ``"PNG"``.
+            prefs: Snapshot of the current user preferences dict.
+
+        Returns:
+            A ``(compressor, success)`` tuple where *compressor* is the
+            ``BaseCompressor`` instance used (or ``None`` for unsupported
+            formats) and *success* is the ``bool`` returned by
+            ``compress_file()``.
+        """
+        filename = os.path.basename(file_path)
+
+        if format_str == "JPEG":
+            compressor = JpegCompressor()
+            success = compressor.compress_file(
+                file_path,
+                None,
+                lossless=prefs['lossless_compression'],
+                strip_metadata=prefs['strip_metadata'],
+                jpeg_quality=prefs['jpeg_compression_level'],
+            )
+        elif format_str == "PNG":
+            compressor = PngCompressor()
+            success = compressor.compress_file(
+                file_path,
+                None,
+                lossless=prefs['lossless_compression'],
+                strip_metadata=prefs['strip_metadata'],
+                png_quality=prefs['png_compression_level'],
+            )
+        elif format_str == "GIF":
+            compressor = GifCompressor()
+            success = compressor.compress_file(
+                file_path,
+                None,
+                lossless=prefs['lossless_compression'],
+                strip_metadata=prefs['strip_metadata'],
+                gif_lossy_level=prefs.get('gif_lossy_level', 40),
+            )
+        elif format_str == "WEBP":
+            compressor = WebpCompressor()
+            success = compressor.compress_file(
+                file_path,
+                None,
+                lossless=prefs['lossless_compression'],
+                strip_metadata=prefs['strip_metadata'],
+                webp_compression_level=prefs.get('webp_compression_level', 80),
+            )
+        else:
+            logger.warning(
+                "Skipped %s: unsupported format %s",
+                _sanitise_for_log(file_path),
+                _sanitise_for_log(format_str),
+            )
+            signals.status_updated.emit(
+                f"Warning: {filename} skipped (unsupported format)"
+            )
+            return None, False
+
+        return compressor, success
+
+    def _emit_compression_result(
+        self,
+        file_path: str,
+        original_size_text: str,
+        row_index: int,
+        compressor,
+        success: bool,
+    ) -> bool:
+        """Emit the appropriate signal after a single-file compression attempt.
+
+        On success the method calculates the savings percentage, then emits
+        ``compression_result_updated``.  On failure it reads
+        ``compressor.last_error`` and emits ``status_updated``.
+
+        The savings calculation is wrapped in its own ``try/except`` so that a
+        filesystem or parsing error does not prevent the success counter from
+        being incremented — matching the original behaviour where
+        ``success_count += 1`` ran unconditionally after the inner block.
+
+        Args:
+            file_path: Absolute path to the (now-compressed) image file.
+            original_size_text: Human-readable size string captured before
+                compression, e.g. ``"1.23 MB"``.
+            row_index: Zero-based table row to update via signal.
+            compressor: The ``BaseCompressor`` instance that ran; must not be
+                ``None`` (callers should guard against the unsupported-format
+                case before calling this method).
+            success: Return value of ``compressor.compress_file()``.
+
+        Returns:
+            ``True`` when compression succeeded (success counter should be
+            incremented by the caller), ``False`` otherwise (failure counter).
+        """
+        filename = os.path.basename(file_path)
+
+        if success:
+            try:
+                original_size_mb = self._convert_to_mb(original_size_text)
+                compressed_size = get_file_size(file_path)
+                compressed_size_mb = self._convert_to_mb(compressed_size)
+
+                saving_pct = (
+                    (original_size_mb - compressed_size_mb) / original_size_mb * 100
+                    if original_size_mb > 0
+                    else 0.0
+                )
+
+                signals.compression_result_updated.emit(
+                    row_index, compressed_size, saving_pct
+                )
+            except Exception:
+                logger.exception(
+                    "Error calculating savings for %s", _sanitise_for_log(filename)
+                )
+            return True
+        else:
+            error_msg = compressor.last_error or "unknown error"
+            logger.error(
+                "Compression failed for %s: %s",
+                _sanitise_for_log(filename),
+                _sanitise_for_log(error_msg),
+            )
+            signals.status_updated.emit(f"Failed: {filename} \u2014 {error_msg}")
+            return False
+
+    def _run_compression(self, snapshot: list, total_files: int) -> None:
         """Compress files in a worker thread.
 
         Reads exclusively from the pre-built snapshot — never from live UI
         widgets. Emits signals for every UI update so all widget changes
         happen on the main thread.
+
+        Complexity is kept low by delegating format dispatch to
+        ``_compress_file_by_format`` and result reporting to
+        ``_emit_compression_result``.
         """
         prefs = dict(self.current_preferences)
         start_time = time.time()
@@ -759,99 +904,32 @@ class MainWindow(QMainWindow):
 
             try:
                 if not os.path.isfile(file_path):
-                    logger.warning("Skipped: %s no longer exists", _sanitise_for_log(file_path))
+                    logger.warning(
+                        "Skipped: %s no longer exists", _sanitise_for_log(file_path)
+                    )
                     signals.status_updated.emit(f"Skipped: {filename} no longer exists")
                     fail_count += 1
                 else:
                     format_str = get_file_format(file_path)
+                    compressor, success = self._compress_file_by_format(
+                        file_path, format_str, prefs
+                    )
 
-                    if format_str == "JPEG":
-                        compressor = JpegCompressor()
-                        success = compressor.compress_file(
-                            file_path,
-                            None,
-                            lossless=prefs['lossless_compression'],
-                            strip_metadata=prefs['strip_metadata'],
-                            jpeg_quality=prefs['jpeg_compression_level'],
-                        )
-                    elif format_str == "PNG":
-                        compressor = PngCompressor()
-                        success = compressor.compress_file(
-                            file_path,
-                            None,
-                            lossless=prefs['lossless_compression'],
-                            strip_metadata=prefs['strip_metadata'],
-                            png_quality=prefs['png_compression_level'],
-                        )
-                    elif format_str == "GIF":
-                        compressor = GifCompressor()
-                        success = compressor.compress_file(
-                            file_path,
-                            None,
-                            lossless=prefs['lossless_compression'],
-                            strip_metadata=prefs['strip_metadata'],
-                            gif_lossy_level=prefs.get('gif_lossy_level', 40),
-                        )
-                    elif format_str == "WEBP":
-                        compressor = WebpCompressor()
-                        success = compressor.compress_file(
-                            file_path,
-                            None,
-                            lossless=prefs['lossless_compression'],
-                            strip_metadata=prefs['strip_metadata'],
-                            webp_compression_level=prefs.get('webp_compression_level', 80),
-                        )
-                    else:
-                        logger.warning(
-                            "Skipped %s: unsupported format %s",
-                            _sanitise_for_log(file_path),
-                            _sanitise_for_log(format_str),
-                        )
-                        signals.status_updated.emit(
-                            f"Warning: {filename} skipped (unsupported format)"
-                        )
+                    if compressor is None:
+                        # Unsupported format — _compress_file_by_format already
+                        # logged the warning and emitted the status signal.
                         fail_count += 1
-                        compressor = None
-                        success = False
-
-                    if compressor is not None:
-                        if success:
-                            try:
-                                original_size_mb = self._convert_to_mb(original_size_text)
-                                compressed_size = get_file_size(file_path)
-                                compressed_size_mb = self._convert_to_mb(compressed_size)
-
-                                if original_size_mb > 0:
-                                    saving_pct = (
-                                        (original_size_mb - compressed_size_mb)
-                                        / original_size_mb
-                                        * 100
-                                    )
-                                else:
-                                    saving_pct = 0.0
-
-                                signals.compression_result_updated.emit(
-                                    row_index, compressed_size, saving_pct
-                                )
-                            except Exception:
-                                logger.exception(
-                                    "Error calculating savings for %s", _sanitise_for_log(filename)
-                                )
-                            success_count += 1
-                        else:
-                            error_msg = compressor.last_error or "unknown error"
-                            logger.error(
-                                "Compression failed for %s: %s",
-                                _sanitise_for_log(filename),
-                                _sanitise_for_log(error_msg),
-                            )
-                            signals.status_updated.emit(
-                                f"Failed: {filename} \u2014 {error_msg}"
-                            )
-                            fail_count += 1
+                    elif self._emit_compression_result(
+                        file_path, original_size_text, row_index, compressor, success
+                    ):
+                        success_count += 1
+                    else:
+                        fail_count += 1
 
             except Exception:
-                logger.exception("Unexpected error processing %s", _sanitise_for_log(filename))
+                logger.exception(
+                    "Unexpected error processing %s", _sanitise_for_log(filename)
+                )
                 signals.status_updated.emit(f"Error processing: {filename}")
                 fail_count += 1
 
