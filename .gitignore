@@ -25,6 +25,9 @@ sdist/
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
+logs/
+*.log
+npm-debug.log*
 
 # Unit test / coverage reports
 htmlcov/
@@ -48,7 +51,12 @@ pyproject.lock
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# Virtualenv
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+*.env
+.todo
 venv/
 env/
 .venv/
@@ -58,12 +66,20 @@ ENV/
 .idea/
 *.iml
 
-# Vscode
-.vscode/
+# IDE
+.vscode/*
+.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
 
 # Mine
 backup/
-dist/
 CLAUDE.md
 working-docs/
 .claude/
