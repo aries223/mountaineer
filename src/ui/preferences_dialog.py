@@ -55,6 +55,11 @@ class PreferencesDialog(QDialog):
             'gif_optimize_level': 2,
             'gif_optimize_keep_empty': False,
             'gif_unoptimize_enabled': False,
+            'png_force_8bit': False,
+            'png_zopfli': False,
+            'png_optimize_alpha': False,
+            'png_interlace_enabled': False,
+            'png_interlace_type': '0',
         }
 
         # JPEG compression level
@@ -140,6 +145,57 @@ class PreferencesDialog(QDialog):
 
         layout.addLayout(jpeg_group_layout)
         layout.addLayout(png_group_layout)
+        layout.addSpacing(16)
+
+        # PNG Options group
+        png_options_box = QGroupBox("PNG Options")
+        png_opts_layout = QVBoxLayout()
+        png_opts_layout.setSpacing(6)
+        png_options_box.setLayout(png_opts_layout)
+
+        # --- Row 1: Force 8-bit ---
+        png_force8_row = QHBoxLayout()
+        self.png_force_8bit_cb = QCheckBox("Force 8-bit")
+        self.png_force_8bit_cb.setToolTip("Convert 16-bit PNG images to 8-bit. Reduces file size but loses colour precision on 16-bit source images.")
+        png_force8_row.addWidget(self.png_force_8bit_cb)
+        png_force8_row.addStretch()
+        png_opts_layout.addLayout(png_force8_row)
+
+        # --- Row 2: Zopfli ---
+        png_zopfli_row = QHBoxLayout()
+        self.png_zopfli_cb = QCheckBox("Zopfli")
+        self.png_zopfli_cb.setToolTip("Use the Zopfli algorithm for better compression. Significantly slower but produces smaller files. Has no additional effect in Lossless mode (which uses Zopfli automatically).")
+        png_zopfli_row.addWidget(self.png_zopfli_cb)
+        png_zopfli_row.addStretch()
+        png_opts_layout.addLayout(png_zopfli_row)
+
+        # --- Row 3: Optimize Alpha ---
+        png_alpha_row = QHBoxLayout()
+        self.png_optimize_alpha_cb = QCheckBox("Optimize Alpha")
+        self.png_optimize_alpha_cb.setToolTip("Optimize the alpha (transparency) channel to improve compressibility.")
+        png_alpha_row.addWidget(self.png_optimize_alpha_cb)
+        png_alpha_row.addStretch()
+        png_opts_layout.addLayout(png_alpha_row)
+
+        # --- Row 4: Interlace ---
+        png_interlace_row = QHBoxLayout()
+        self.png_interlace_cb = QCheckBox("Interlace")
+        self.png_interlace_cb.setToolTip("Set the interlacing mode for PNG output.")
+        self.png_interlace_combo = QComboBox()
+        self.png_interlace_combo.addItem("0 \u2013 Remove interlacing", '0')
+        self.png_interlace_combo.addItem("1 \u2013 Adam7 interlacing", '1')
+        self.png_interlace_combo.addItem("Keep existing", 'keep')
+        self.png_interlace_combo.setEnabled(False)
+        png_interlace_row.addWidget(self.png_interlace_cb)
+        png_interlace_row.addWidget(self.png_interlace_combo)
+        png_interlace_row.addStretch()
+        png_opts_layout.addLayout(png_interlace_row)
+
+        layout.addWidget(png_options_box)
+        layout.addSpacing(16)
+
+        # Signal wiring for PNG Options enable/disable
+        self.png_interlace_cb.toggled.connect(self.png_interlace_combo.setEnabled)
 
         # GIF lossy level
         gif_group_layout = QVBoxLayout()
@@ -719,6 +775,36 @@ class PreferencesDialog(QDialog):
             self.gif_optimize_level_combo.setEnabled(gif_optimize_enabled)
             self.gif_optimize_keep_empty_cb.setEnabled(gif_optimize_enabled)
 
+        # --- PNG Options initial values ---
+        png_force_8bit        = current_prefs.get('png_force_8bit', False)
+        png_zopfli            = current_prefs.get('png_zopfli', False)
+        png_optimize_alpha    = current_prefs.get('png_optimize_alpha', False)
+        png_interlace_enabled = current_prefs.get('png_interlace_enabled', False)
+        png_interlace_type    = current_prefs.get('png_interlace_type', '0')
+
+        self.png_force_8bit_cb.blockSignals(True)
+        self.png_force_8bit_cb.setChecked(png_force_8bit)
+        self.png_force_8bit_cb.blockSignals(False)
+
+        self.png_zopfli_cb.blockSignals(True)
+        self.png_zopfli_cb.setChecked(png_zopfli)
+        self.png_zopfli_cb.blockSignals(False)
+
+        self.png_optimize_alpha_cb.blockSignals(True)
+        self.png_optimize_alpha_cb.setChecked(png_optimize_alpha)
+        self.png_optimize_alpha_cb.blockSignals(False)
+
+        self.png_interlace_cb.blockSignals(True)
+        self.png_interlace_cb.setChecked(png_interlace_enabled)
+        self.png_interlace_cb.blockSignals(False)
+
+        _interlace_idx = self.png_interlace_combo.findData(png_interlace_type)
+        self.png_interlace_combo.blockSignals(True)
+        self.png_interlace_combo.setCurrentIndex(_interlace_idx if _interlace_idx >= 0 else 0)
+        self.png_interlace_combo.blockSignals(False)
+
+        self.png_interlace_combo.setEnabled(png_interlace_enabled)
+
         # Populate current_preferences from the loaded values so MainWindow
         # always receives a complete dict when it reads dialog.current_preferences.
         self.current_preferences = {
@@ -751,6 +837,11 @@ class PreferencesDialog(QDialog):
             'gif_optimize_level': gif_optimize_level,
             'gif_optimize_keep_empty': gif_optimize_keep_empty,
             'gif_unoptimize_enabled': gif_unoptimize_enabled,
+            'png_force_8bit': png_force_8bit,
+            'png_zopfli': png_zopfli,
+            'png_optimize_alpha': png_optimize_alpha,
+            'png_interlace_enabled': png_interlace_enabled,
+            'png_interlace_type': png_interlace_type,
         }
 
     def save_preferences(self):
@@ -790,12 +881,17 @@ class PreferencesDialog(QDialog):
             'gif_optimize_level': self.gif_optimize_level_combo.currentData(),
             'gif_optimize_keep_empty': self.gif_optimize_keep_empty_cb.isChecked(),
             'gif_unoptimize_enabled': self.gif_unoptimize_cb.isChecked(),
+            'png_force_8bit': self.png_force_8bit_cb.isChecked(),
+            'png_zopfli': self.png_zopfli_cb.isChecked(),
+            'png_optimize_alpha': self.png_optimize_alpha_cb.isChecked(),
+            'png_interlace_enabled': self.png_interlace_cb.isChecked(),
+            'png_interlace_type': self.png_interlace_combo.currentData(),
         }
 
         existing_prefs.update(new_values)
         self.preferences.save_preferences(existing_prefs)
 
-        self.current_preferences = new_values
+        self.current_preferences = existing_prefs
         self.accept()
 
     def update_jpeg_value_label(self, value):

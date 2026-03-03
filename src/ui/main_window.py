@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import (
 from compression.base_compressor import _sanitise_for_log
 from compression.gif_compressor import GifCompressor, GifOptions
 from compression.jpeg_compressor import JpegCompressor
-from compression.png_compressor import PngCompressor
+from compression.png_compressor import PngCompressor, PngOptions
 from compression.webp_compressor import WebpCompressor
 from utils.file_utils import get_file_format, get_file_size, get_image_dimensions
 from utils.preferences import Preferences
@@ -777,12 +777,20 @@ class MainWindow(QMainWindow):
             )
         elif format_str == "PNG":
             compressor = PngCompressor()
+            opts = PngOptions(
+                force_8bit        = prefs.get('png_force_8bit', False),
+                zopfli            = prefs.get('png_zopfli', False),
+                optimize_alpha    = prefs.get('png_optimize_alpha', False),
+                interlace_enabled = prefs.get('png_interlace_enabled', False),
+                interlace_type    = prefs.get('png_interlace_type', '0'),
+            )
             success = compressor.compress_file(
-                file_path,
-                None,
-                lossless=prefs['lossless_compression'],
-                strip_metadata=prefs['strip_metadata'],
-                png_quality=prefs['png_compression_level'],
+                input_path     = file_path,
+                output_path    = None,
+                lossless       = prefs['lossless_compression'],
+                strip_metadata = prefs['strip_metadata'],
+                png_quality    = prefs['png_compression_level'],
+                options        = opts,
             )
         elif format_str == "GIF":
             compressor = GifCompressor()

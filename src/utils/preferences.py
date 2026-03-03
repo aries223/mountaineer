@@ -47,6 +47,11 @@ class Preferences:
         'gif_optimize_level': 2,
         'gif_optimize_keep_empty': False,
         'gif_unoptimize_enabled': False,
+        'png_force_8bit':        False,
+        'png_zopfli':            False,
+        'png_optimize_alpha':    False,
+        'png_interlace_enabled': False,
+        'png_interlace_type':    '0',
         'webp_compression_level': 90,
         'lossless_compression': False,
         'strip_metadata': True,
@@ -86,8 +91,9 @@ class Preferences:
     # here whose stored value is not a member of its frozenset will be replaced
     # by its DEFAULT_PREFERENCES default and a warning will be logged.
     _STRING_ALLOWLISTS: dict[str, frozenset] = {
-        'gif_dither_method': _DITHER_METHODS,
-        'gif_resize_mode':   _RESIZE_MODES,
+        'gif_dither_method':  _DITHER_METHODS,
+        'gif_resize_mode':    _RESIZE_MODES,
+        'png_interlace_type': frozenset({'0', '1', 'keep'}),
     }
 
     def __init__(self):
