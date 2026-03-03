@@ -86,63 +86,86 @@ class WebpCompressor(BaseCompressor):
 
         return success
 
+    def _append_crop_flags(self, cmd: list, options: WebpOptions) -> None:
+        """Append -crop flags to *cmd* when the crop dimensions are valid.
+
+        Logs a warning and returns early if either crop dimension is zero,
+        since cwebp requires both width and height to be positive.
+        """
+        if options.crop_width == 0 or options.crop_height == 0:
+            logger.warning(
+                "WebP crop skipped: crop_width and crop_height must both be > 0"
+            )
+            return
+        cmd.extend([
+            "-crop",
+            str(options.crop_x),
+            str(options.crop_y),
+            str(options.crop_width),
+            str(options.crop_height),
+        ])
+
+    def _append_resize_flags(self, cmd: list, options: WebpOptions) -> None:
+        """Append -resize (and optional direction) flags to *cmd*.
+
+        Logs a warning and returns early when both width and height are zero,
+        since cwebp requires at least one dimension to be non-zero.  An
+        invalid resize_mode is corrected to 'always' before the flags are
+        appended.
+        """
+        if options.resize_width == 0 and options.resize_height == 0:
+            logger.warning(
+                "WebP resize skipped: at least one of resize_width or resize_height must be > 0"
+            )
+            return
+        resize_mode = options.resize_mode
+        if resize_mode not in _VALID_RESIZE_MODES:
+            logger.warning(
+                "WebP resize_mode %r is invalid; falling back to 'always'",
+                resize_mode,
+            )
+            resize_mode = 'always'
+        cmd.extend(["-resize", str(options.resize_width), str(options.resize_height)])
+        if resize_mode == 'down_only':
+            cmd.append("-resize_down")
+        elif resize_mode == 'up_only':
+            cmd.append("-resize_up")
+
+    def _append_target_size_flags(self, cmd: list, options: WebpOptions) -> None:
+        """Append -size (and optional -pass) flags to *cmd*.
+
+        Resolves the target size to bytes using *_UNIT_MULTIPLIERS*.  An
+        invalid target_size_unit is corrected to 'KB' before the conversion.
+        The -pass flag is appended only when passes_enabled is True.
+        """
+        unit = options.target_size_unit
+        if unit not in _UNIT_MULTIPLIERS:
+            logger.warning(
+                "WebP target_size_unit %r is invalid; falling back to 'KB'",
+                unit,
+            )
+            unit = 'KB'
+        target_bytes = options.target_size_value * _UNIT_MULTIPLIERS[unit]
+        cmd.extend(["-size", str(target_bytes)])
+        if options.passes_enabled:
+            cmd.extend(["-pass", str(options.passes)])
+
     def _append_options_flags(self, cmd: list, options: WebpOptions) -> None:
         """Append cwebp flags derived from *options* to *cmd* in place.
 
-        Flag order: crop → resize → target size → passes → auto filter → jpeg_like.
-        Crop is applied before resize per cwebp semantics.
+        Flag order: crop → resize → target size (+ optional passes) → auto filter → jpeg_like.
+        Crop is applied before resize per cwebp semantics.  The -pass flag is
+        emitted inside _append_target_size_flags only when both target_size_enabled
+        and passes_enabled are True.
         """
         if options.crop_enabled:
-            if options.crop_width == 0 or options.crop_height == 0:
-                logger.warning(
-                    "WebP crop skipped: crop_width and crop_height must both be > 0"
-                )
-            else:
-                cmd.extend([
-                    "-crop",
-                    str(options.crop_x),
-                    str(options.crop_y),
-                    str(options.crop_width),
-                    str(options.crop_height),
-                ])
-
+            self._append_crop_flags(cmd, options)
         if options.resize_enabled:
-            if options.resize_width == 0 and options.resize_height == 0:
-                logger.warning(
-                    "WebP resize skipped: at least one of resize_width or resize_height must be > 0"
-                )
-            else:
-                resize_mode = options.resize_mode
-                if resize_mode not in _VALID_RESIZE_MODES:
-                    logger.warning(
-                        "WebP resize_mode %r is invalid; falling back to 'always'",
-                        resize_mode,
-                    )
-                    resize_mode = 'always'
-                cmd.extend(["-resize", str(options.resize_width), str(options.resize_height)])
-                if resize_mode == 'down_only':
-                    cmd.append("-resize_down")
-                elif resize_mode == 'up_only':
-                    cmd.append("-resize_up")
-
+            self._append_resize_flags(cmd, options)
         if options.target_size_enabled:
-            if options.target_size_unit not in _UNIT_MULTIPLIERS:
-                logger.warning(
-                    "WebP target_size_unit %r is invalid; falling back to 'KB'",
-                    options.target_size_unit,
-                )
-                unit = 'KB'
-            else:
-                unit = options.target_size_unit
-            target_bytes = options.target_size_value * _UNIT_MULTIPLIERS[unit]
-            cmd.extend(["-size", str(target_bytes)])
-
-            if options.passes_enabled:
-                cmd.extend(["-pass", str(options.passes)])
-
+            self._append_target_size_flags(cmd, options)
         if options.auto_filter:
             cmd.append("-af")
-
         if options.jpeg_like:
             cmd.append("-jpeg_like")
 
