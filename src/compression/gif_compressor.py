@@ -252,14 +252,15 @@ class GifCompressor(BaseCompressor):
                 self.last_error = f"scale_y must be >= 0, got {scale_y}"
                 logger.error(self.last_error)
                 return False
-            if scale_y == 0.0:
-                # Uniform scaling: a single factor applies to both axes.
+            if scale_y > 0.0:
+                # Independent horizontal and vertical scale factors.
                 # Fix E: use :.6g to avoid floating-point noise in the
                 # flag string (e.g. 0.5 stays "0.5", not "0.50000001").
-                cmd.append(f"--scale={scale_x:.6g}")
-            else:
-                # Independent horizontal and vertical scale factors.
                 cmd.append(f"--scale={scale_x:.6g}x{scale_y:.6g}")
+            else:
+                # scale_y <= 0.0 (validated >= 0.0 above, so effectively 0):
+                # uniform scaling — gifsicle applies scale_x to both axes.
+                cmd.append(f"--scale={scale_x:.6g}")
         else:
             # --resize=WxH; gifsicle treats 0 in either dimension as
             # "fit to the other dimension while preserving aspect ratio".
