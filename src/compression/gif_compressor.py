@@ -4,6 +4,7 @@ import logging
 import os
 import subprocess
 import tempfile
+from dataclasses import dataclass, field  # noqa: F401 (field reserved for future use)
 from typing import List, Optional, Tuple
 
 from .base_compressor import BaseCompressor
@@ -17,6 +18,52 @@ _VALID_DITHER_METHODS = frozenset({
     'floyd-steinberg', 'ro64', 'o8', 'o16', 'o32', 'o64',
     'ordered', 'blue_noise', 'halftone',
 })
+
+
+@dataclass
+class GifOptions:
+    """Configuration for GIF-specific gifsicle options passed to GifCompressor.compress_file().
+
+    All fields mirror the formerly-inline parameters of compress_file() so that
+    callers can construct options explicitly and compress_file() stays within
+    Sonar's 13-parameter limit (PLR0913).
+    """
+
+    # Resize / scale
+    resize_enabled: bool = False
+    resize_mode: str = 'resize'        # 'resize' or 'scale'
+    resize_width: int = 0              # 0 = auto-fit that dimension
+    resize_height: int = 0
+    scale_x: float = 1.0
+    scale_y: float = 0.0              # 0.0 = uniform (same as scale_x)
+
+    # Colour reduction
+    colors_enabled: bool = False
+    colors_num: int = 256             # valid range: 2–256
+
+    # Dithering
+    dither_enabled: bool = False
+    dither_method: str = 'floyd-steinberg'
+
+    # Frame removal
+    remove_frames_enabled: bool = False
+    remove_frames_n: int = 2          # keep 1 in every N frames
+    remove_frames_offset: int = 0     # 0 = keep 0,N,2N… ; 1 = keep 1,N+1,…
+
+    # Loop count
+    loopcount_enabled: bool = False
+    loopcount_forever: bool = True
+    loopcount_value: int = 1
+
+    # Frame delay
+    delay_enabled: bool = False
+    delay_value: int = 10             # hundredths of a second
+
+    # Optimisation overrides
+    optimize_enabled: bool = False    # when True, replaces auto -O2/-O3
+    optimize_level: int = 2           # 1, 2, or 3
+    optimize_keep_empty: bool = False
+    unoptimize_enabled: bool = False
 
 
 class GifCompressor(BaseCompressor):
@@ -429,56 +476,14 @@ class GifCompressor(BaseCompressor):
 
         return success
 
-    def compress_file(  # noqa: PLR0912,PLR0913,PLR0915  (many branches/args by design)
+    def compress_file(  # noqa: PLR0912,PLR0915  (many branches/statements by design)
         self,
         input_path: str,
         output_path: Optional[str] = None,
         lossless: bool = False,
         strip_metadata: bool = False,
         gif_lossy_level: Optional[int] = None,
-        # ------------------------------------------------------------------ #
-        # Resize / scale                                                       #
-        # ------------------------------------------------------------------ #
-        resize_enabled: bool = False,
-        resize_mode: str = 'resize',    # 'resize' or 'scale'
-        resize_width: int = 0,          # 0 = auto-fit that dimension
-        resize_height: int = 0,
-        scale_x: float = 1.0,
-        scale_y: float = 0.0,           # 0.0 = uniform (same as scale_x)
-        # ------------------------------------------------------------------ #
-        # Colour reduction                                                     #
-        # ------------------------------------------------------------------ #
-        colors_enabled: bool = False,
-        colors_num: int = 256,          # valid range: 2–256
-        # ------------------------------------------------------------------ #
-        # Dithering                                                            #
-        # ------------------------------------------------------------------ #
-        dither_enabled: bool = False,
-        dither_method: str = 'floyd-steinberg',
-        # ------------------------------------------------------------------ #
-        # Frame removal                                                        #
-        # ------------------------------------------------------------------ #
-        remove_frames_enabled: bool = False,
-        remove_frames_n: int = 2,       # keep 1 in every N frames
-        remove_frames_offset: int = 0,  # 0 = keep 0,N,2N… ; 1 = keep 1,N+1,…
-        # ------------------------------------------------------------------ #
-        # Loop count                                                           #
-        # ------------------------------------------------------------------ #
-        loopcount_enabled: bool = False,
-        loopcount_forever: bool = True,
-        loopcount_value: int = 1,
-        # ------------------------------------------------------------------ #
-        # Frame delay                                                          #
-        # ------------------------------------------------------------------ #
-        delay_enabled: bool = False,
-        delay_value: int = 10,          # hundredths of a second
-        # ------------------------------------------------------------------ #
-        # Optimization overrides                                               #
-        # ------------------------------------------------------------------ #
-        optimize_enabled: bool = False,  # when True, replaces auto -O2/-O3
-        optimize_level: int = 2,         # 1, 2, or 3
-        optimize_keep_empty: bool = False,
-        unoptimize_enabled: bool = False,
+        options: Optional[GifOptions] = None,
     ) -> bool:
         """Compress a GIF file using gifsicle.
 
@@ -516,57 +521,16 @@ class GifCompressor(BaseCompressor):
             gif_lossy_level: Lossy compression strength (0–200).  Required
                 when lossless is False; ignored when lossless is True.
                 Values are clamped to [0, 200] before use.
-            resize_enabled: When True, apply a resize or scale transform.
-            resize_mode: 'resize' to use --resize=WxH; 'scale' to use
-                --scale=X or --scale=XxY.
-            resize_width: Target width in pixels for --resize.  0 lets
-                gifsicle auto-fit that dimension.
-            resize_height: Target height in pixels for --resize.  0 lets
-                gifsicle auto-fit that dimension.
-            scale_x: Horizontal scale factor for --scale (e.g. 0.5 = 50 %).
-            scale_y: Vertical scale factor for --scale.  0.0 means uniform
-                scaling — the same factor as scale_x is applied to both axes.
-            colors_enabled: When True, reduce the colour table to colors_num
-                entries via --colors=N.
-            colors_num: Target number of colours (2–256).  Values outside
-                this range are clamped before use.
-            dither_enabled: When True, add a --dither flag to improve
-                perceived quality after colour reduction.
-            dither_method: Dithering algorithm passed to --dither=method.
-                The special value 'floyd-steinberg' emits plain --dither
-                (no method suffix) because gifsicle uses Floyd–Steinberg by
-                default when no method is given.
-            remove_frames_enabled: When True, keep only 1 in every
-                remove_frames_n frames starting at remove_frames_offset.
-                Implemented as a gifsicle frame-selector argument appended
-                after the input path.
-            remove_frames_n: Stride — keep frame at positions
-                offset, offset+N, offset+2N, …
-            remove_frames_offset: First frame index to keep (0-based).
-            loopcount_enabled: When True, override the GIF loop count.
-            loopcount_forever: When True (and loopcount_enabled), use
-                --loopcount=forever.  When False, use --loopcount=N where
-                N is loopcount_value.
-            loopcount_value: Explicit loop count used when loopcount_forever
-                is False.
-            delay_enabled: When True, set a uniform inter-frame delay via
-                --delay=N.
-            delay_value: Delay in hundredths of a second (e.g. 10 = 0.1 s).
-            optimize_enabled: When True, override the automatic -O2/-O3
-                selection with an explicit --optimize=N flag.  Ignored when
-                unoptimize_enabled is True.
-            optimize_level: Optimisation level (1, 2, or 3) used when
-                optimize_enabled is True.
-            optimize_keep_empty: When True (and optimize_enabled), append
-                --optimize=keep-empty so gifsicle preserves empty frames
-                during the optimisation pass.
-            unoptimize_enabled: When True, pass --unoptimize to expand a
-                previously-optimised GIF back to a per-frame representation.
-                When this flag is set, no -O flag is emitted at all.
+            options: GIF-specific compression options.  When None a
+                ``GifOptions()`` instance with all defaults is used.  See
+                ``GifOptions`` for per-field documentation.
 
         Returns:
             True on success, False on failure (details in self.last_error).
         """
+        if options is None:
+            options = GifOptions()
+
         if not lossless and gif_lossy_level is None:
             self.last_error = (
                 "gif_lossy_level must be provided for non-lossless compression"
@@ -577,23 +541,23 @@ class GifCompressor(BaseCompressor):
         cmd: List[str] = ["gifsicle"]
 
         self._apply_optimization_flags(
-            cmd, lossless, unoptimize_enabled, optimize_enabled,
-            optimize_level, optimize_keep_empty, remove_frames_enabled,
+            cmd, lossless, options.unoptimize_enabled, options.optimize_enabled,
+            options.optimize_level, options.optimize_keep_empty, options.remove_frames_enabled,
         )
-        if not self._apply_lossy_flag(cmd, lossless, unoptimize_enabled, gif_lossy_level):
+        if not self._apply_lossy_flag(cmd, lossless, options.unoptimize_enabled, gif_lossy_level):
             return False
         self._apply_loop_delay_flags(
-            cmd, loopcount_enabled, loopcount_forever, loopcount_value,
-            delay_enabled, delay_value,
+            cmd, options.loopcount_enabled, options.loopcount_forever, options.loopcount_value,
+            options.delay_enabled, options.delay_value,
         )
 
         if not self._apply_color_dither_flags(
-            cmd, colors_enabled, colors_num, dither_enabled, dither_method
+            cmd, options.colors_enabled, options.colors_num, options.dither_enabled, options.dither_method
         ):
             return False
         if not self._apply_resize_flags(
-            cmd, resize_enabled, resize_mode, resize_width, resize_height,
-            scale_x, scale_y,
+            cmd, options.resize_enabled, options.resize_mode, options.resize_width, options.resize_height,
+            options.scale_x, options.scale_y,
         ):
             return False
 
@@ -605,14 +569,14 @@ class GifCompressor(BaseCompressor):
             cmd.extend(["--no-comments", "--no-extensions", "--no-names"])
 
         ok, temp_path = self._prepare_output_destination(
-            cmd, input_path, output_path, remove_frames_enabled
+            cmd, input_path, output_path, options.remove_frames_enabled
         )
         if not ok:
             return False
 
         if not self._apply_frame_selection(
-            cmd, input_path, remove_frames_enabled,
-            remove_frames_offset, remove_frames_n, temp_path,
+            cmd, input_path, options.remove_frames_enabled,
+            options.remove_frames_offset, options.remove_frames_n, temp_path,
         ):
             return False
 

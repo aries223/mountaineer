@@ -16,7 +16,7 @@ from PyQt6.QtWidgets import (
 )
 
 from compression.base_compressor import _sanitise_for_log
-from compression.gif_compressor import GifCompressor
+from compression.gif_compressor import GifCompressor, GifOptions
 from compression.jpeg_compressor import JpegCompressor
 from compression.png_compressor import PngCompressor
 from compression.webp_compressor import WebpCompressor
@@ -786,13 +786,7 @@ class MainWindow(QMainWindow):
             )
         elif format_str == "GIF":
             compressor = GifCompressor()
-            success = compressor.compress_file(
-                file_path, None,
-                lossless=prefs['lossless_compression'],
-                strip_metadata=prefs['strip_metadata'],
-                # Fix L: default matches DEFAULT_PREFERENCES (20), not the
-                # stale placeholder value of 40 that was here before.
-                gif_lossy_level=prefs.get('gif_lossy_level', 20),
+            gif_opts = GifOptions(
                 resize_enabled=prefs.get('gif_resize_enabled', False),
                 resize_mode=prefs.get('gif_resize_mode', 'resize'),
                 resize_width=prefs.get('gif_resize_width', 0),
@@ -815,6 +809,13 @@ class MainWindow(QMainWindow):
                 optimize_level=prefs.get('gif_optimize_level', 2),
                 optimize_keep_empty=prefs.get('gif_optimize_keep_empty', False),
                 unoptimize_enabled=prefs.get('gif_unoptimize_enabled', False),
+            )
+            success = compressor.compress_file(
+                file_path, None,
+                lossless=prefs['lossless_compression'],
+                strip_metadata=prefs['strip_metadata'],
+                gif_lossy_level=prefs.get('gif_lossy_level', 20),
+                options=gif_opts,
             )
         elif format_str == "WEBP":
             compressor = WebpCompressor()
