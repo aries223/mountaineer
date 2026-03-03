@@ -19,7 +19,7 @@ from compression.base_compressor import _sanitise_for_log
 from compression.gif_compressor import GifCompressor, GifOptions
 from compression.jpeg_compressor import JpegCompressor
 from compression.png_compressor import PngCompressor, PngOptions
-from compression.webp_compressor import WebpCompressor
+from compression.webp_compressor import WebpCompressor, WebpOptions
 from utils.file_utils import get_file_format, get_file_size, get_image_dimensions
 from utils.preferences import Preferences
 from utils.signals import signals
@@ -827,12 +827,31 @@ class MainWindow(QMainWindow):
             )
         elif format_str == "WEBP":
             compressor = WebpCompressor()
+            opts = WebpOptions(
+                crop_enabled        = prefs.get('webp_crop_enabled', False),
+                crop_x              = prefs.get('webp_crop_x', 0),
+                crop_y              = prefs.get('webp_crop_y', 0),
+                crop_width          = prefs.get('webp_crop_width', 0),
+                crop_height         = prefs.get('webp_crop_height', 0),
+                resize_enabled      = prefs.get('webp_resize_enabled', False),
+                resize_width        = prefs.get('webp_resize_width', 0),
+                resize_height       = prefs.get('webp_resize_height', 0),
+                resize_mode         = prefs.get('webp_resize_mode', 'always'),
+                target_size_enabled = prefs.get('webp_target_size_enabled', False),
+                target_size_value   = prefs.get('webp_target_size_value', 100),
+                target_size_unit    = prefs.get('webp_target_size_unit', 'KB'),
+                passes_enabled      = prefs.get('webp_passes_enabled', False),
+                passes              = prefs.get('webp_passes', 6),
+                auto_filter         = prefs.get('webp_auto_filter', False),
+                jpeg_like           = prefs.get('webp_jpeg_like', False),
+            )
             success = compressor.compress_file(
-                file_path,
-                None,
-                lossless=prefs['lossless_compression'],
-                strip_metadata=prefs['strip_metadata'],
-                webp_compression_level=prefs.get('webp_compression_level', 80),
+                input_path             = file_path,
+                output_path            = None,
+                lossless               = prefs['lossless_compression'],
+                strip_metadata         = prefs['strip_metadata'],
+                webp_compression_level = prefs.get('webp_compression_level', 80),
+                options                = opts,
             )
         else:
             logger.warning(

@@ -3,11 +3,36 @@
 import logging
 import os
 import tempfile
+from dataclasses import dataclass
 from typing import Optional
 
 from .base_compressor import BaseCompressor
 
 logger = logging.getLogger(__name__)
+
+_UNIT_MULTIPLIERS = {'KB': 1024, 'MB': 1048576}
+_VALID_RESIZE_MODES = frozenset({'down_only', 'up_only', 'always'})
+
+
+@dataclass
+class WebpOptions:
+    """Configuration for WebP-specific cwebp options passed to WebpCompressor.compress_file()."""
+    crop_enabled:        bool = False
+    crop_x:              int  = 0
+    crop_y:              int  = 0
+    crop_width:          int  = 0
+    crop_height:         int  = 0
+    resize_enabled:      bool = False
+    resize_width:        int  = 0
+    resize_height:       int  = 0
+    resize_mode:         str  = 'always'
+    target_size_enabled: bool = False
+    target_size_value:   int  = 100
+    target_size_unit:    str  = 'KB'
+    passes_enabled:      bool = False   # only applied when target_size_enabled is also True
+    passes:              int  = 6
+    auto_filter:         bool = False
+    jpeg_like:           bool = False
 
 
 class WebpCompressor(BaseCompressor):
@@ -61,6 +86,66 @@ class WebpCompressor(BaseCompressor):
 
         return success
 
+    def _append_options_flags(self, cmd: list, options: WebpOptions) -> None:
+        """Append cwebp flags derived from *options* to *cmd* in place.
+
+        Flag order: crop → resize → target size → passes → auto filter → jpeg_like.
+        Crop is applied before resize per cwebp semantics.
+        """
+        if options.crop_enabled:
+            if options.crop_width == 0 or options.crop_height == 0:
+                logger.warning(
+                    "WebP crop skipped: crop_width and crop_height must both be > 0"
+                )
+            else:
+                cmd.extend([
+                    "-crop",
+                    str(options.crop_x),
+                    str(options.crop_y),
+                    str(options.crop_width),
+                    str(options.crop_height),
+                ])
+
+        if options.resize_enabled:
+            if options.resize_width == 0 and options.resize_height == 0:
+                logger.warning(
+                    "WebP resize skipped: at least one of resize_width or resize_height must be > 0"
+                )
+            else:
+                resize_mode = options.resize_mode
+                if resize_mode not in _VALID_RESIZE_MODES:
+                    logger.warning(
+                        "WebP resize_mode %r is invalid; falling back to 'always'",
+                        resize_mode,
+                    )
+                    resize_mode = 'always'
+                cmd.extend(["-resize", str(options.resize_width), str(options.resize_height)])
+                if resize_mode == 'down_only':
+                    cmd.append("-resize_down")
+                elif resize_mode == 'up_only':
+                    cmd.append("-resize_up")
+
+        if options.target_size_enabled:
+            if options.target_size_unit not in _UNIT_MULTIPLIERS:
+                logger.warning(
+                    "WebP target_size_unit %r is invalid; falling back to 'KB'",
+                    options.target_size_unit,
+                )
+                unit = 'KB'
+            else:
+                unit = options.target_size_unit
+            target_bytes = options.target_size_value * _UNIT_MULTIPLIERS[unit]
+            cmd.extend(["-size", str(target_bytes)])
+
+            if options.passes_enabled:
+                cmd.extend(["-pass", str(options.passes)])
+
+        if options.auto_filter:
+            cmd.append("-af")
+
+        if options.jpeg_like:
+            cmd.append("-jpeg_like")
+
     def compress_file(
         self,
         input_path: str,
@@ -68,6 +153,7 @@ class WebpCompressor(BaseCompressor):
         lossless: bool = False,
         strip_metadata: bool = False,
         webp_compression_level: Optional[int] = None,
+        options: Optional[WebpOptions] = None,
     ) -> bool:
         """Compress a WebP file using cwebp.
 
@@ -148,6 +234,10 @@ class WebpCompressor(BaseCompressor):
 
         if strip_metadata:
             cmd.extend(["-metadata", "none"])
+
+        if options is None:
+            options = WebpOptions()
+        self._append_options_flags(cmd, options)
 
         cmd.extend([input_path, "-o", effective_output])
 

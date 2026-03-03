@@ -53,6 +53,22 @@ class Preferences:
         'png_interlace_enabled': False,
         'png_interlace_type':    '0',
         'webp_compression_level': 90,
+        'webp_crop_enabled':        False,
+        'webp_crop_x':              0,
+        'webp_crop_y':              0,
+        'webp_crop_width':          0,
+        'webp_crop_height':         0,
+        'webp_resize_enabled':      False,
+        'webp_resize_width':        0,
+        'webp_resize_height':       0,
+        'webp_resize_mode':         'always',
+        'webp_target_size_enabled': False,
+        'webp_target_size_value':   100,
+        'webp_target_size_unit':    'KB',
+        'webp_passes_enabled':      False,
+        'webp_passes':              6,
+        'webp_auto_filter':         False,
+        'webp_jpeg_like':           False,
         'lossless_compression': False,
         'strip_metadata': True,
         'warn_before_overwrite': True,
@@ -85,6 +101,14 @@ class Preferences:
         'gif_loopcount_value':      (0, 65535),
         'gif_optimize_level':       (1, 3),
         'webp_compression_level':   (0, 100),
+        'webp_crop_x':            (0, 65535),
+        'webp_crop_y':            (0, 65535),
+        'webp_crop_width':        (0, 65535),
+        'webp_crop_height':       (0, 65535),
+        'webp_resize_width':      (0, 65535),
+        'webp_resize_height':     (0, 65535),
+        'webp_target_size_value': (1, 999999),
+        'webp_passes':            (1, 10),
     }
 
     # Fix J: mapping from preference key → allowlist frozenset.  Any key listed
@@ -94,6 +118,8 @@ class Preferences:
         'gif_dither_method':  _DITHER_METHODS,
         'gif_resize_mode':    _RESIZE_MODES,
         'png_interlace_type': frozenset({'0', '1', 'keep'}),
+        'webp_resize_mode':      frozenset({'down_only', 'up_only', 'always'}),
+        'webp_target_size_unit': frozenset({'KB', 'MB'}),
     }
 
     def __init__(self):

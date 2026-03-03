@@ -60,6 +60,22 @@ class PreferencesDialog(QDialog):
             'png_optimize_alpha': False,
             'png_interlace_enabled': False,
             'png_interlace_type': '0',
+            'webp_crop_enabled':        False,
+            'webp_crop_x':              0,
+            'webp_crop_y':              0,
+            'webp_crop_width':          0,
+            'webp_crop_height':         0,
+            'webp_resize_enabled':      False,
+            'webp_resize_width':        0,
+            'webp_resize_height':       0,
+            'webp_resize_mode':         'always',
+            'webp_target_size_enabled': False,
+            'webp_target_size_value':   100,
+            'webp_target_size_unit':    'KB',
+            'webp_passes_enabled':      False,
+            'webp_passes':              6,
+            'webp_auto_filter':         False,
+            'webp_jpeg_like':           False,
         }
 
         # JPEG compression level
@@ -276,6 +292,145 @@ class PreferencesDialog(QDialog):
         # WebP slider appears before GIF slider so the GIF Options group
         # sits immediately below the GIF lossy slider.
         layout.addLayout(webp_group_layout)
+        layout.addSpacing(16)
+
+        # WebP Options group
+        webp_options_box = QGroupBox("WebP Options")
+        webp_opts_layout = QVBoxLayout()
+        webp_opts_layout.setSpacing(6)
+        webp_options_box.setLayout(webp_opts_layout)
+
+        # --- Row 1: Crop ---
+        crop_row = QHBoxLayout()
+        self.webp_crop_cb = QCheckBox("Crop")
+        self.webp_crop_cb.setToolTip("Crop the source image before compression.")
+        crop_row.addWidget(self.webp_crop_cb)
+        crop_sub = QVBoxLayout()
+        crop_sub.setContentsMargins(20, 0, 0, 0)
+        crop_xy_row = QHBoxLayout()
+        crop_xy_row.addWidget(QLabel("X:"))
+        self.webp_crop_x_spin = QSpinBox()
+        self.webp_crop_x_spin.setRange(0, 65535)
+        self.webp_crop_x_spin.setEnabled(False)
+        crop_xy_row.addWidget(self.webp_crop_x_spin)
+        crop_xy_row.addWidget(QLabel("Y:"))
+        self.webp_crop_y_spin = QSpinBox()
+        self.webp_crop_y_spin.setRange(0, 65535)
+        self.webp_crop_y_spin.setEnabled(False)
+        crop_xy_row.addWidget(self.webp_crop_y_spin)
+        crop_xy_row.addStretch()
+        crop_wh_row = QHBoxLayout()
+        crop_wh_row.addWidget(QLabel("W:"))
+        self.webp_crop_w_spin = QSpinBox()
+        self.webp_crop_w_spin.setRange(0, 65535)
+        self.webp_crop_w_spin.setEnabled(False)
+        crop_wh_row.addWidget(self.webp_crop_w_spin)
+        crop_wh_row.addWidget(QLabel("H:"))
+        self.webp_crop_h_spin = QSpinBox()
+        self.webp_crop_h_spin.setRange(0, 65535)
+        self.webp_crop_h_spin.setEnabled(False)
+        crop_wh_row.addWidget(self.webp_crop_h_spin)
+        crop_wh_row.addStretch()
+        crop_sub.addLayout(crop_xy_row)
+        crop_sub.addLayout(crop_wh_row)
+        crop_row.addLayout(crop_sub)
+        webp_opts_layout.addLayout(crop_row)
+
+        # --- Row 2: Resize ---
+        resize_row = QHBoxLayout()
+        self.webp_resize_cb = QCheckBox("Resize")
+        self.webp_resize_cb.setToolTip(
+            "Resize before compression. Set one dimension to 0 to preserve aspect ratio."
+        )
+        resize_row.addWidget(self.webp_resize_cb)
+        resize_sub = QHBoxLayout()
+        resize_sub.setContentsMargins(20, 0, 0, 0)
+        resize_sub.addWidget(QLabel("W:"))
+        self.webp_resize_w_spin = QSpinBox()
+        self.webp_resize_w_spin.setRange(0, 65535)
+        self.webp_resize_w_spin.setEnabled(False)
+        resize_sub.addWidget(self.webp_resize_w_spin)
+        resize_sub.addWidget(QLabel("H:"))
+        self.webp_resize_h_spin = QSpinBox()
+        self.webp_resize_h_spin.setRange(0, 65535)
+        self.webp_resize_h_spin.setEnabled(False)
+        resize_sub.addWidget(self.webp_resize_h_spin)
+        resize_sub.addWidget(QLabel("Mode:"))
+        self.webp_resize_mode_combo = QComboBox()
+        self.webp_resize_mode_combo.addItem("Always", 'always')
+        self.webp_resize_mode_combo.addItem("Down only", 'down_only')
+        self.webp_resize_mode_combo.addItem("Up only", 'up_only')
+        self.webp_resize_mode_combo.setEnabled(False)
+        resize_sub.addWidget(self.webp_resize_mode_combo)
+        resize_sub.addStretch()
+        resize_row.addLayout(resize_sub)
+        webp_opts_layout.addLayout(resize_row)
+
+        # --- Row 3: Target Size ---
+        target_size_row = QHBoxLayout()
+        self.webp_target_size_cb = QCheckBox("Target Size")
+        self.webp_target_size_cb.setToolTip(
+            "Target output file size. The compressor makes multiple passes to reach this size. Lossy mode only."
+        )
+        target_size_row.addWidget(self.webp_target_size_cb)
+        self.webp_target_size_spin = QSpinBox()
+        self.webp_target_size_spin.setRange(1, 999999)
+        self.webp_target_size_spin.setValue(100)
+        self.webp_target_size_spin.setEnabled(False)
+        target_size_row.addWidget(self.webp_target_size_spin)
+        self.webp_target_size_unit_combo = QComboBox()
+        self.webp_target_size_unit_combo.addItem("KB", 'KB')
+        self.webp_target_size_unit_combo.addItem("MB", 'MB')
+        self.webp_target_size_unit_combo.setEnabled(False)
+        target_size_row.addWidget(self.webp_target_size_unit_combo)
+        target_size_row.addStretch()
+        webp_opts_layout.addLayout(target_size_row)
+
+        # --- Row 4: Passes ---
+        passes_row = QHBoxLayout()
+        self.webp_passes_cb = QCheckBox("Passes")
+        self.webp_passes_cb.setToolTip(
+            "Maximum number of encoding passes for Target Size. Only active when Target Size is enabled."
+        )
+        self.webp_passes_cb.setEnabled(False)
+        passes_row.addWidget(self.webp_passes_cb)
+        self.webp_passes_spin = QSpinBox()
+        self.webp_passes_spin.setRange(1, 10)
+        self.webp_passes_spin.setValue(6)
+        self.webp_passes_spin.setEnabled(False)
+        passes_row.addWidget(self.webp_passes_spin)
+        passes_row.addStretch()
+        webp_opts_layout.addLayout(passes_row)
+
+        # --- Row 5: Auto Filter ---
+        auto_filter_row = QHBoxLayout()
+        self.webp_auto_filter_cb = QCheckBox("Auto Filter")
+        self.webp_auto_filter_cb.setToolTip(
+            "Automatically optimize the filter strength. Slower but produces better quality."
+        )
+        auto_filter_row.addWidget(self.webp_auto_filter_cb)
+        auto_filter_row.addStretch()
+        webp_opts_layout.addLayout(auto_filter_row)
+
+        # --- Row 6: JPEG-like ---
+        jpeg_like_row = QHBoxLayout()
+        self.webp_jpeg_like_cb = QCheckBox("JPEG-like")
+        self.webp_jpeg_like_cb.setToolTip(
+            "Map compression parameters to produce output of similar size to JPEG at the same quality setting."
+        )
+        jpeg_like_row.addWidget(self.webp_jpeg_like_cb)
+        jpeg_like_row.addStretch()
+        webp_opts_layout.addLayout(jpeg_like_row)
+
+        layout.addWidget(webp_options_box)
+        layout.addSpacing(16)
+
+        # Signal wiring for WebP Options enable/disable
+        self.webp_crop_cb.toggled.connect(self._on_webp_crop_toggled)
+        self.webp_resize_cb.toggled.connect(self._on_webp_resize_toggled)
+        self.webp_target_size_cb.toggled.connect(self._on_webp_target_size_toggled)
+        self.webp_passes_cb.toggled.connect(self.webp_passes_spin.setEnabled)
+
         layout.addLayout(gif_group_layout)
         layout.addSpacing(16)
 
@@ -805,6 +960,96 @@ class PreferencesDialog(QDialog):
 
         self.png_interlace_combo.setEnabled(png_interlace_enabled)
 
+        # --- WebP Options initial values ---
+        webp_crop_enabled        = current_prefs.get('webp_crop_enabled', False)
+        webp_crop_x              = current_prefs.get('webp_crop_x', 0)
+        webp_crop_y              = current_prefs.get('webp_crop_y', 0)
+        webp_crop_width          = current_prefs.get('webp_crop_width', 0)
+        webp_crop_height         = current_prefs.get('webp_crop_height', 0)
+        webp_resize_enabled      = current_prefs.get('webp_resize_enabled', False)
+        webp_resize_width        = current_prefs.get('webp_resize_width', 0)
+        webp_resize_height       = current_prefs.get('webp_resize_height', 0)
+        webp_resize_mode         = current_prefs.get('webp_resize_mode', 'always')
+        webp_target_size_enabled = current_prefs.get('webp_target_size_enabled', False)
+        webp_target_size_value   = current_prefs.get('webp_target_size_value', 100)
+        webp_target_size_unit    = current_prefs.get('webp_target_size_unit', 'KB')
+        webp_passes_enabled      = current_prefs.get('webp_passes_enabled', False)
+        webp_passes              = current_prefs.get('webp_passes', 6)
+        webp_auto_filter         = current_prefs.get('webp_auto_filter', False)
+        webp_jpeg_like           = current_prefs.get('webp_jpeg_like', False)
+
+        self.webp_crop_cb.blockSignals(True)
+        self.webp_crop_cb.setChecked(webp_crop_enabled)
+        self.webp_crop_cb.blockSignals(False)
+
+        self.webp_crop_x_spin.blockSignals(True)
+        self.webp_crop_x_spin.setValue(webp_crop_x)
+        self.webp_crop_x_spin.blockSignals(False)
+
+        self.webp_crop_y_spin.blockSignals(True)
+        self.webp_crop_y_spin.setValue(webp_crop_y)
+        self.webp_crop_y_spin.blockSignals(False)
+
+        self.webp_crop_w_spin.blockSignals(True)
+        self.webp_crop_w_spin.setValue(webp_crop_width)
+        self.webp_crop_w_spin.blockSignals(False)
+
+        self.webp_crop_h_spin.blockSignals(True)
+        self.webp_crop_h_spin.setValue(webp_crop_height)
+        self.webp_crop_h_spin.blockSignals(False)
+
+        self.webp_resize_cb.blockSignals(True)
+        self.webp_resize_cb.setChecked(webp_resize_enabled)
+        self.webp_resize_cb.blockSignals(False)
+
+        self.webp_resize_w_spin.blockSignals(True)
+        self.webp_resize_w_spin.setValue(webp_resize_width)
+        self.webp_resize_w_spin.blockSignals(False)
+
+        self.webp_resize_h_spin.blockSignals(True)
+        self.webp_resize_h_spin.setValue(webp_resize_height)
+        self.webp_resize_h_spin.blockSignals(False)
+
+        _webp_resize_mode_idx = self.webp_resize_mode_combo.findData(webp_resize_mode)
+        self.webp_resize_mode_combo.blockSignals(True)
+        self.webp_resize_mode_combo.setCurrentIndex(_webp_resize_mode_idx if _webp_resize_mode_idx >= 0 else 0)
+        self.webp_resize_mode_combo.blockSignals(False)
+
+        self.webp_target_size_cb.blockSignals(True)
+        self.webp_target_size_cb.setChecked(webp_target_size_enabled)
+        self.webp_target_size_cb.blockSignals(False)
+
+        self.webp_target_size_spin.blockSignals(True)
+        self.webp_target_size_spin.setValue(webp_target_size_value)
+        self.webp_target_size_spin.blockSignals(False)
+
+        _webp_unit_idx = self.webp_target_size_unit_combo.findData(webp_target_size_unit)
+        self.webp_target_size_unit_combo.blockSignals(True)
+        self.webp_target_size_unit_combo.setCurrentIndex(_webp_unit_idx if _webp_unit_idx >= 0 else 0)
+        self.webp_target_size_unit_combo.blockSignals(False)
+
+        self.webp_passes_cb.blockSignals(True)
+        self.webp_passes_cb.setChecked(webp_passes_enabled)
+        self.webp_passes_cb.blockSignals(False)
+
+        self.webp_passes_spin.blockSignals(True)
+        self.webp_passes_spin.setValue(webp_passes)
+        self.webp_passes_spin.blockSignals(False)
+
+        self.webp_auto_filter_cb.blockSignals(True)
+        self.webp_auto_filter_cb.setChecked(webp_auto_filter)
+        self.webp_auto_filter_cb.blockSignals(False)
+
+        self.webp_jpeg_like_cb.blockSignals(True)
+        self.webp_jpeg_like_cb.setChecked(webp_jpeg_like)
+        self.webp_jpeg_like_cb.blockSignals(False)
+
+        # Restore enabled states for WebP Options via the same handlers that
+        # are wired to the checkboxes, so the logic stays in one place.
+        self._on_webp_crop_toggled(webp_crop_enabled)
+        self._on_webp_resize_toggled(webp_resize_enabled)
+        self._on_webp_target_size_toggled(webp_target_size_enabled)
+
         # Populate current_preferences from the loaded values so MainWindow
         # always receives a complete dict when it reads dialog.current_preferences.
         self.current_preferences = {
@@ -842,6 +1087,22 @@ class PreferencesDialog(QDialog):
             'png_optimize_alpha': png_optimize_alpha,
             'png_interlace_enabled': png_interlace_enabled,
             'png_interlace_type': png_interlace_type,
+            'webp_crop_enabled':        webp_crop_enabled,
+            'webp_crop_x':              webp_crop_x,
+            'webp_crop_y':              webp_crop_y,
+            'webp_crop_width':          webp_crop_width,
+            'webp_crop_height':         webp_crop_height,
+            'webp_resize_enabled':      webp_resize_enabled,
+            'webp_resize_width':        webp_resize_width,
+            'webp_resize_height':       webp_resize_height,
+            'webp_resize_mode':         webp_resize_mode,
+            'webp_target_size_enabled': webp_target_size_enabled,
+            'webp_target_size_value':   webp_target_size_value,
+            'webp_target_size_unit':    webp_target_size_unit,
+            'webp_passes_enabled':      webp_passes_enabled,
+            'webp_passes':              webp_passes,
+            'webp_auto_filter':         webp_auto_filter,
+            'webp_jpeg_like':           webp_jpeg_like,
         }
 
     def save_preferences(self):
@@ -886,6 +1147,22 @@ class PreferencesDialog(QDialog):
             'png_optimize_alpha': self.png_optimize_alpha_cb.isChecked(),
             'png_interlace_enabled': self.png_interlace_cb.isChecked(),
             'png_interlace_type': self.png_interlace_combo.currentData(),
+            'webp_crop_enabled':        self.webp_crop_cb.isChecked(),
+            'webp_crop_x':              self.webp_crop_x_spin.value(),
+            'webp_crop_y':              self.webp_crop_y_spin.value(),
+            'webp_crop_width':          self.webp_crop_w_spin.value(),
+            'webp_crop_height':         self.webp_crop_h_spin.value(),
+            'webp_resize_enabled':      self.webp_resize_cb.isChecked(),
+            'webp_resize_width':        self.webp_resize_w_spin.value(),
+            'webp_resize_height':       self.webp_resize_h_spin.value(),
+            'webp_resize_mode':         self.webp_resize_mode_combo.currentData(),
+            'webp_target_size_enabled': self.webp_target_size_cb.isChecked(),
+            'webp_target_size_value':   self.webp_target_size_spin.value(),
+            'webp_target_size_unit':    self.webp_target_size_unit_combo.currentData(),
+            'webp_passes_enabled':      self.webp_passes_cb.isChecked(),
+            'webp_passes':              self.webp_passes_spin.value(),
+            'webp_auto_filter':         self.webp_auto_filter_cb.isChecked(),
+            'webp_jpeg_like':           self.webp_jpeg_like_cb.isChecked(),
         }
 
         existing_prefs.update(new_values)
@@ -990,6 +1267,29 @@ class PreferencesDialog(QDialog):
             self.gif_optimize_cb.blockSignals(True)
             self.gif_optimize_cb.setChecked(False)
             self.gif_optimize_cb.blockSignals(False)
+
+    def _on_webp_crop_toggled(self, checked: bool) -> None:
+        """Enable or disable the crop coordinate spinboxes when the Crop checkbox is toggled."""
+        for w in (self.webp_crop_x_spin, self.webp_crop_y_spin,
+                  self.webp_crop_w_spin, self.webp_crop_h_spin):
+            w.setEnabled(checked)
+
+    def _on_webp_resize_toggled(self, checked: bool) -> None:
+        """Enable or disable resize sub-widgets when the Resize checkbox is toggled."""
+        for w in (self.webp_resize_w_spin, self.webp_resize_h_spin,
+                  self.webp_resize_mode_combo):
+            w.setEnabled(checked)
+
+    def _on_webp_target_size_toggled(self, checked: bool) -> None:
+        """Enable or disable target-size sub-widgets when the Target Size checkbox is toggled.
+
+        The Passes checkbox and spinbox are gated on Target Size being active;
+        passes are only meaningful in target-size encoding mode.
+        """
+        self.webp_target_size_spin.setEnabled(checked)
+        self.webp_target_size_unit_combo.setEnabled(checked)
+        self.webp_passes_cb.setEnabled(checked)
+        self.webp_passes_spin.setEnabled(checked and self.webp_passes_cb.isChecked())
 
     def done(self, result):
         """Save dialog size whenever the dialog closes, regardless of how it
