@@ -312,6 +312,25 @@ class GifCompressor(BaseCompressor):
 
         return True, temp_path
 
+    def _cleanup_temp(self, temp_path: Optional[str]) -> None:
+        """Remove a temporary file if one was created, ignoring errors.
+
+        This is a best-effort cleanup helper.  The original file is never
+        touched here — it is only the intermediate temp file that is removed
+        to avoid leaving orphaned files on disk when an error path is taken
+        before _finalize_result() would otherwise handle cleanup.
+
+        Args:
+            temp_path: Absolute path to the temporary file to remove, or
+                None if no temp file was created (in which case this is a
+                safe no-op).
+        """
+        if temp_path is not None:
+            try:
+                os.unlink(temp_path)
+            except OSError:
+                pass  # best-effort; leave no orphaned temp files if possible
+
     def _apply_frame_selection(
         self,
         cmd: List[str],
@@ -347,11 +366,7 @@ class GifCompressor(BaseCompressor):
         if remove_frames_n < 1:
             self.last_error = f"remove_frames_n must be >= 1, got {remove_frames_n}"
             logger.error(self.last_error)
-            if temp_path is not None:
-                try:
-                    os.unlink(temp_path)
-                except OSError:
-                    pass
+            self._cleanup_temp(temp_path)
             return False
 
         frame_count = self._get_frame_count(input_path)
@@ -360,12 +375,7 @@ class GifCompressor(BaseCompressor):
                 "Could not determine frame count for frame removal"
             )
             logger.error(self.last_error)
-            # Clean up temp file if one was created.
-            if temp_path is not None:
-                try:
-                    os.unlink(temp_path)
-                except OSError:
-                    pass
+            self._cleanup_temp(temp_path)
             return False
 
         frames_to_keep = list(range(remove_frames_offset, frame_count, remove_frames_n))
@@ -376,11 +386,7 @@ class GifCompressor(BaseCompressor):
                 f"total={frame_count})"
             )
             logger.error(self.last_error)
-            if temp_path is not None:
-                try:
-                    os.unlink(temp_path)
-                except OSError:
-                    pass
+            self._cleanup_temp(temp_path)
             return False
 
         # List the input path once, then append all '#N' selectors.
