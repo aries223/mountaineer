@@ -219,11 +219,7 @@ class Preferences:
             # default prevents that from reaching the subprocess layer.
             if k in self._STRING_ALLOWLISTS:
                 if result not in self._STRING_ALLOWLISTS[k]:
-                    logger.warning(
-                        "Preference '%s': invalid value %r, using default",
-                        _sanitise_for_log(str(k)),
-                        _sanitise_for_log(str(result)),
-                    )
+                    logger.warning("Preference '%s': invalid value, using default", _sanitise_for_log(str(k)))
                     result = default
 
             if key_was_present and result != loaded[k]:
