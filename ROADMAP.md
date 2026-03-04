@@ -27,10 +27,3 @@ Next release: **v1.4.0**
 ---
 
 ## Backlog (unscheduled)
-
-- [ ] AVIF format support (via `avifenc`)
-- [ ] TIFF format support
-- [ ] Per-file compression settings (override global quality per row)
-- [ ] Compression history / log viewer in the UI
-- [ ] Dark/light system theme detection (currently dark-only)
-- [ ] Flatpak packaging
