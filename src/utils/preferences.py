@@ -23,6 +23,11 @@ _RESIZE_MODES = frozenset({'resize', 'scale'})
 class Preferences:
     DEFAULT_PREFERENCES = {
         'jpeg_compression_level': 90,
+        'jpeg_target_size_enabled': False,
+        'jpeg_target_size_value':   500,
+        'jpeg_target_size_unit':    'KB',
+        'jpeg_auto_progressive':    False,
+        'jpeg_all_progressive':     False,
         'png_compression_level': 1,
         'gif_lossy_level': 20,
         'gif_resize_enabled': False,
@@ -87,6 +92,7 @@ class Preferences:
 
     _COMPRESSION_RANGES: dict[str, tuple[int, int]] = {
         'jpeg_compression_level':   (0, 100),
+        'jpeg_target_size_value':   (1, 999999),
         'png_compression_level':    (0, 6),
         'gif_lossy_level':          (0, 200),
         'gif_colors_num':           (2, 256),
@@ -120,6 +126,7 @@ class Preferences:
         'png_interlace_type': frozenset({'0', '1', 'keep'}),
         'webp_resize_mode':      frozenset({'down_only', 'up_only', 'always'}),
         'webp_target_size_unit': frozenset({'KB', 'MB'}),
+        'jpeg_target_size_unit': frozenset({'KB', 'MB'}),
     }
 
     def __init__(self):

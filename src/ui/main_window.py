@@ -17,7 +17,7 @@ from PyQt6.QtWidgets import (
 
 from compression.base_compressor import _sanitise_for_log
 from compression.gif_compressor import GifCompressor, GifOptions
-from compression.jpeg_compressor import JpegCompressor
+from compression.jpeg_compressor import JpegCompressor, JpegOptions
 from compression.png_compressor import PngCompressor, PngOptions
 from compression.webp_compressor import WebpCompressor, WebpOptions
 from utils.file_utils import get_file_format, get_file_size, get_image_dimensions
@@ -768,12 +768,20 @@ class MainWindow(QMainWindow):
 
         if format_str == "JPEG":
             compressor = JpegCompressor()
+            opts = JpegOptions(
+                target_size_enabled = prefs.get('jpeg_target_size_enabled', False),
+                target_size_value   = prefs.get('jpeg_target_size_value', 500),
+                target_size_unit    = prefs.get('jpeg_target_size_unit', 'KB'),
+                auto_progressive    = prefs.get('jpeg_auto_progressive', False),
+                all_progressive     = prefs.get('jpeg_all_progressive', False),
+            )
             success = compressor.compress_file(
-                file_path,
-                None,
-                lossless=prefs['lossless_compression'],
-                strip_metadata=prefs['strip_metadata'],
-                jpeg_quality=prefs['jpeg_compression_level'],
+                input_path     = file_path,
+                output_path    = None,
+                lossless       = prefs['lossless_compression'],
+                strip_metadata = prefs['strip_metadata'],
+                jpeg_quality   = prefs['jpeg_compression_level'],
+                options        = opts,
             )
         elif format_str == "PNG":
             compressor = PngCompressor()

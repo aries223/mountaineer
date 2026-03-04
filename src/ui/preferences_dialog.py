@@ -27,6 +27,11 @@ class PreferencesDialog(QDialog):
         # during construction finds a complete dict rather than an empty one.
         self.current_preferences = {
             'jpeg_compression_level': 95,
+            'jpeg_target_size_enabled': False,
+            'jpeg_target_size_value':   500,
+            'jpeg_target_size_unit':    'KB',
+            'jpeg_auto_progressive':    False,
+            'jpeg_all_progressive':     False,
             'png_compression_level': 1,
             'gif_lossy_level': 40,
             'webp_compression_level': 80,
@@ -160,6 +165,64 @@ class PreferencesDialog(QDialog):
         png_group_layout.addLayout(self.png_tick_layout)
 
         layout.addLayout(jpeg_group_layout)
+        layout.addSpacing(16)
+
+        # JPEG Options group
+        jpeg_options_box = QGroupBox("JPEG Options")
+        jpeg_opts_layout = QVBoxLayout()
+        jpeg_opts_layout.setSpacing(6)
+        jpeg_options_box.setLayout(jpeg_opts_layout)
+
+        # --- Row 1: Target Size ---
+        jpeg_target_size_row = QHBoxLayout()
+        self.jpeg_target_size_cb = QCheckBox("Target Size")
+        self.jpeg_target_size_cb.setToolTip(
+            "Target output file size. The compressor adjusts quality to reach this size. Lossy mode only."
+        )
+        jpeg_target_size_row.addWidget(self.jpeg_target_size_cb)
+        self.jpeg_target_size_spin = QSpinBox()
+        self.jpeg_target_size_spin.setRange(1, 999999)
+        self.jpeg_target_size_spin.setValue(500)
+        self.jpeg_target_size_spin.setEnabled(False)
+        jpeg_target_size_row.addWidget(self.jpeg_target_size_spin)
+        self.jpeg_target_size_unit_combo = QComboBox()
+        self.jpeg_target_size_unit_combo.addItem("KB", 'KB')
+        self.jpeg_target_size_unit_combo.addItem("MB", 'MB')
+        self.jpeg_target_size_unit_combo.setEnabled(False)
+        jpeg_target_size_row.addWidget(self.jpeg_target_size_unit_combo)
+        jpeg_target_size_row.addStretch()
+        jpeg_opts_layout.addLayout(jpeg_target_size_row)
+
+        # --- Row 2: Auto Progressive Mode ---
+        jpeg_auto_progressive_row = QHBoxLayout()
+        self.jpeg_auto_progressive_cb = QCheckBox("Auto Progressive Mode")
+        self.jpeg_auto_progressive_cb.setToolTip(
+            "Automatically select progressive or non-progressive encoding based on which produces a smaller output. "
+            "Disables the Progressive option below."
+        )
+        jpeg_auto_progressive_row.addWidget(self.jpeg_auto_progressive_cb)
+        jpeg_auto_progressive_row.addStretch()
+        jpeg_opts_layout.addLayout(jpeg_auto_progressive_row)
+
+        # --- Row 3: Progressive ---
+        jpeg_all_progressive_row = QHBoxLayout()
+        self.jpeg_all_progressive_cb = QCheckBox("Progressive")
+        self.jpeg_all_progressive_cb.setToolTip(
+            "Force output to use progressive JPEG encoding. When neither this nor Auto Progressive Mode is checked, "
+            "non-progressive (--all-normal) is used by default."
+        )
+        jpeg_all_progressive_row.addWidget(self.jpeg_all_progressive_cb)
+        jpeg_all_progressive_row.addStretch()
+        jpeg_opts_layout.addLayout(jpeg_all_progressive_row)
+
+        layout.addWidget(jpeg_options_box)
+        layout.addSpacing(16)
+
+        # Signal wiring for JPEG Options enable/disable
+        self.jpeg_target_size_cb.toggled.connect(self._on_jpeg_target_size_toggled)
+        self.jpeg_auto_progressive_cb.toggled.connect(self._on_jpeg_auto_progressive_toggled)
+        self.jpeg_all_progressive_cb.toggled.connect(self._on_jpeg_all_progressive_toggled)
+
         layout.addLayout(png_group_layout)
         layout.addSpacing(16)
 
@@ -751,6 +814,11 @@ class PreferencesDialog(QDialog):
         current_prefs = self.preferences.load_preferences()
 
         jpeg_level = current_prefs.get('jpeg_compression_level', 95)
+        jpeg_target_size_enabled = current_prefs.get('jpeg_target_size_enabled', False)
+        jpeg_target_size_value   = current_prefs.get('jpeg_target_size_value', 500)
+        jpeg_target_size_unit    = current_prefs.get('jpeg_target_size_unit', 'KB')
+        jpeg_auto_progressive    = current_prefs.get('jpeg_auto_progressive', False)
+        jpeg_all_progressive     = current_prefs.get('jpeg_all_progressive', False)
         png_level = current_prefs.get('png_compression_level', 1)
         gif_level = current_prefs.get('gif_lossy_level', 40)
         webp_level = current_prefs.get('webp_compression_level', 80)
@@ -763,6 +831,34 @@ class PreferencesDialog(QDialog):
         self.jpeg_slider.setValue(jpeg_level)
         self.jpeg_slider.blockSignals(False)
         self.jpeg_value_label.setText(str(jpeg_level))
+
+        # --- JPEG Options initial values ---
+        self.jpeg_target_size_cb.blockSignals(True)
+        self.jpeg_target_size_cb.setChecked(jpeg_target_size_enabled)
+        self.jpeg_target_size_cb.blockSignals(False)
+
+        self.jpeg_target_size_spin.blockSignals(True)
+        self.jpeg_target_size_spin.setValue(jpeg_target_size_value)
+        self.jpeg_target_size_spin.blockSignals(False)
+
+        _jpeg_unit_idx = self.jpeg_target_size_unit_combo.findData(jpeg_target_size_unit)
+        self.jpeg_target_size_unit_combo.blockSignals(True)
+        self.jpeg_target_size_unit_combo.setCurrentIndex(_jpeg_unit_idx if _jpeg_unit_idx >= 0 else 0)
+        self.jpeg_target_size_unit_combo.blockSignals(False)
+
+        self.jpeg_auto_progressive_cb.blockSignals(True)
+        self.jpeg_auto_progressive_cb.setChecked(jpeg_auto_progressive)
+        self.jpeg_auto_progressive_cb.blockSignals(False)
+
+        self.jpeg_all_progressive_cb.blockSignals(True)
+        self.jpeg_all_progressive_cb.setChecked(jpeg_all_progressive)
+        self.jpeg_all_progressive_cb.blockSignals(False)
+
+        # Restore enabled states for JPEG Options via the same handlers that
+        # are wired to the checkboxes, so the logic stays in one place.
+        self._on_jpeg_target_size_toggled(jpeg_target_size_enabled)
+        self._on_jpeg_auto_progressive_toggled(jpeg_auto_progressive)
+        self._on_jpeg_all_progressive_toggled(jpeg_all_progressive)
 
         png_level = max(0, min(6, png_level))
         self.png_slider.blockSignals(True)
@@ -1054,6 +1150,11 @@ class PreferencesDialog(QDialog):
         # always receives a complete dict when it reads dialog.current_preferences.
         self.current_preferences = {
             'jpeg_compression_level': jpeg_level,
+            'jpeg_target_size_enabled': self.jpeg_target_size_cb.isChecked(),
+            'jpeg_target_size_value':   self.jpeg_target_size_spin.value(),
+            'jpeg_target_size_unit':    self.jpeg_target_size_unit_combo.currentData(),
+            'jpeg_auto_progressive':    self.jpeg_auto_progressive_cb.isChecked(),
+            'jpeg_all_progressive':     self.jpeg_all_progressive_cb.isChecked(),
             'png_compression_level': png_level,
             'gif_lossy_level': gif_level,
             'webp_compression_level': webp_level,
@@ -1114,6 +1215,11 @@ class PreferencesDialog(QDialog):
         # passing the stale on-disk value through unchanged.
         new_values = {
             'jpeg_compression_level': self.jpeg_slider.value(),
+            'jpeg_target_size_enabled': self.jpeg_target_size_cb.isChecked(),
+            'jpeg_target_size_value':   self.jpeg_target_size_spin.value(),
+            'jpeg_target_size_unit':    self.jpeg_target_size_unit_combo.currentData(),
+            'jpeg_auto_progressive':    self.jpeg_auto_progressive_cb.isChecked(),
+            'jpeg_all_progressive':     self.jpeg_all_progressive_cb.isChecked(),
             'png_compression_level': self.png_slider.value(),
             'gif_lossy_level': self.gif_slider.value(),
             'webp_compression_level': self.webp_slider.value(),
@@ -1186,6 +1292,25 @@ class PreferencesDialog(QDialog):
     def update_webp_value_label(self, value):
         self.webp_value_label.setText(str(value))
         self.current_preferences['webp_compression_level'] = value
+
+    def _on_jpeg_target_size_toggled(self, checked: bool) -> None:
+        """Enable or disable target-size sub-widgets when the Target Size checkbox is toggled."""
+        self.jpeg_target_size_spin.setEnabled(checked)
+        self.jpeg_target_size_unit_combo.setEnabled(checked)
+
+    def _on_jpeg_auto_progressive_toggled(self, checked: bool) -> None:
+        """Uncheck Progressive when Auto Progressive Mode is checked (mutually exclusive)."""
+        if checked:
+            self.jpeg_all_progressive_cb.blockSignals(True)
+            self.jpeg_all_progressive_cb.setChecked(False)
+            self.jpeg_all_progressive_cb.blockSignals(False)
+
+    def _on_jpeg_all_progressive_toggled(self, checked: bool) -> None:
+        """Uncheck Auto Progressive Mode when Progressive is checked (mutually exclusive)."""
+        if checked:
+            self.jpeg_auto_progressive_cb.blockSignals(True)
+            self.jpeg_auto_progressive_cb.setChecked(False)
+            self.jpeg_auto_progressive_cb.blockSignals(False)
 
     def _on_gif_resize_toggled(self, enabled: bool) -> None:
         """Enable or disable all resize sub-widgets when the Resize checkbox is toggled.
