@@ -31,7 +31,7 @@ Python >= 3.12
 ### RPM (Fedora / RHEL)
 
 ```bash
-sudo dnf install Mountaineer-1.2.1.rpm
+sudo dnf install Mountaineer-1.3.0.rpm
 ```
 
 ### DEB (Debian / Ubuntu)
@@ -41,7 +41,7 @@ https://github.com/oxipng/oxipng/releases
 <br/>
 After that install Mountaineer:
 ```bash
-sudo apt install Mountaineer-1.2.1.deb
+sudo apt install Mountaineer-1.3.0.deb
 ```
 #### Testing
 Mountaineer is developed, tested and used exclusively on Fedora KDE. I've created a .deb for Debian/Ubuntu systems, but dont test it there past making sure it installs and runs. If you see Debian/Ubuntu related problems please create an issue and I'll see if I can work it out.

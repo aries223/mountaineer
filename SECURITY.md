@@ -4,8 +4,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| 1.2.1   | Yes       |
-| < 1.2.1 | No        |
+| 1.3.0   | Yes       |
+| < 1.3.0 | No        |
 
 ## Security Scanning
 

@@ -1,11 +1,11 @@
 # Mountaineer Roadmap
 
-Current release: **v1.2.1**
-Next release: **v1.3.0**
+Current release: **v1.3.0**
+Next release: **v1.4.0**
 
 ---
 
-## v1.3.0 — Planned
+## v1.3.0 — Released
 
 ### App
 
