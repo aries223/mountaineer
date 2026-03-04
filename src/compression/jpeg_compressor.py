@@ -33,6 +33,26 @@ class JpegCompressor(BaseCompressor):
     def __init__(self):
         super().__init__()
 
+    def _apply_target_size(self, cmd: list, options: "JpegOptions", lossless: bool) -> None:
+        """Append the jpegoptim --size flag to *cmd*, or warn and skip in lossless mode.
+
+        Target-size compression is lossy only.  When lossless=True the flag cannot
+        be applied, so a warning is emitted and *cmd* is left unchanged.
+
+        Args:
+            cmd:      The command list being assembled for jpegoptim.
+            options:  JPEG options containing target_size_value and target_size_unit.
+            lossless: Whether the current compression run is lossless.
+        """
+        if lossless:
+            logger.warning(
+                "JPEG target_size is ignored in lossless mode; skipping --size flag"
+            )
+            return
+        multiplier = {'KB': 1, 'MB': 1024}.get(options.target_size_unit, 1)
+        size_kb = options.target_size_value * multiplier
+        cmd.append(f"--size={size_kb}")
+
     def compress_file(self, input_path, output_path=None, lossless=False,
                      strip_metadata=False, jpeg_quality=None,
                      options: Optional[JpegOptions] = None):
@@ -92,14 +112,7 @@ class JpegCompressor(BaseCompressor):
 
         # Target size is lossy only; silently skip with warning if lossless=True.
         if options.target_size_enabled:
-            if lossless:
-                logger.warning(
-                    "JPEG target_size is ignored in lossless mode; skipping --size flag"
-                )
-            else:
-                multiplier = {'KB': 1, 'MB': 1024}.get(options.target_size_unit, 1)
-                size_kb = options.target_size_value * multiplier
-                cmd.append(f"--size={size_kb}")
+            self._apply_target_size(cmd, options, lossless)
 
         if strip_metadata:
             cmd.append("--strip-all")
