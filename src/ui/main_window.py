@@ -92,6 +92,9 @@ class MainWindow(QMainWindow):
         view_menu = self.menu_bar.addMenu("View")
         statusbar_action = view_menu.addAction("Toggle Status Bar")
         statusbar_action.triggered.connect(self.toggle_status_bar)
+        view_menu.addSeparator()
+        view_logs_action = view_menu.addAction("View Logs")
+        view_logs_action.triggered.connect(self.open_log_file)
 
         # Help menu
         help_menu = self.menu_bar.addMenu("Help")
@@ -1094,6 +1097,24 @@ class MainWindow(QMainWindow):
         """Open the Mountaineer documentation in the default system browser."""
         url = QUrl("https://mountaineer-app.com/docs.html")
         QDesktopServices.openUrl(url)
+
+    def open_log_file(self) -> None:
+        """Open the Mountaineer log file in the system's default application.
+
+        The log path is resolved from the user's home directory at call time so
+        it is never hardcoded and works regardless of the running user account.
+        """
+        log_path = os.path.expanduser("~/.mountaineer/mountaineer.log")
+        if not os.path.isfile(log_path):
+            QMessageBox.information(
+                self,
+                "Log File Not Found",
+                f"No log file has been created yet.\n\n"
+                f"The log file is written to:\n{log_path}\n\n"
+                f"Try restarting Mountaineer and then viewing the log again.",
+            )
+            return
+        QDesktopServices.openUrl(QUrl.fromLocalFile(log_path))
 
     def show_about_dialog(self):
         """Show the About Mountaineer dialog."""
