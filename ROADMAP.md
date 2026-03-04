@@ -5,21 +5,23 @@ Next release: **v1.4.0**
 
 ---
 
+## v1.4.0 — Planned
+
+- [ ] **Dark/light system theme detection** (currently dark-only)
+
+---
+
 ## v1.3.0 — Released
 
 ### App
 
-- [ ] **Bump minimum Python version to 3.12**
-- [ ] **Improve .gif compression options**
-  - Color Pallete reduction
-   - Remove every n frames
-- [ ] **Fix File List Header Span bug**
-- [ ] **About dialog version bump** — update version string to 1.3.0
+- [x] **Bump minimum Python version to 3.12**
+- [x] **Improve  **Options groups in Preferences for JPEG, PNG, WebP, and GIF (including advanced GIF options)**
+- [x] **About dialog version bump** — centralized to src/version.py
 
 ### Packaging
 
-- [ ] **Update RPM spec to v1.3.0**
-- [ ] **DEB package** — conststant naming in package
+- [x] **Update RPM spec to v1.3.0**
 
 ---
 
