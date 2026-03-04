@@ -1092,7 +1092,7 @@ class MainWindow(QMainWindow):
 
     def open_documentation(self) -> None:
         """Open the Mountaineer documentation in the default system browser."""
-        url = QUrl("https://github.com/aries223/mountaineer/blob/main/Documentation/Documentation.md")
+        url = QUrl("https://mountaineer-app.com/docs.html")
         QDesktopServices.openUrl(url)
 
     def show_about_dialog(self):
