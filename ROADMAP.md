@@ -8,6 +8,7 @@ Next release: **v1.4.0**
 ## v1.4.0 — Planned
 
 - [ ] **Dark/light system theme detection** (currently dark-only)
+- [ ] **Improve layout of the Preferences Dialog Window**
 
 ---
 
