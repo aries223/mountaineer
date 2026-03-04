@@ -7,6 +7,9 @@ import sys
 from PyQt6.QtWidgets import QApplication
 
 from ui.main_window import MainWindow
+from version import __version__
+
+logger = logging.getLogger(__name__)
 
 
 def _setup_logging():
@@ -37,6 +40,7 @@ def _setup_logging():
 
 def main():
     _setup_logging()
+    logger.info("Mountaineer %s starting", __version__)
     app = QApplication(sys.argv)
     app.setDesktopFileName("mountaineer")
     window = MainWindow()

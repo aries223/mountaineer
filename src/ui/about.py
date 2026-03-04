@@ -3,6 +3,8 @@
 import logging
 import os
 
+from version import __version__
+
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QDialog, QLabel, QVBoxLayout
@@ -36,11 +38,11 @@ class AboutDialog(QDialog):
             else:
                 logger.warning("QPixmap returned null for logo at %s", logo_path)
 
-        about_text = """
+        about_text = f"""
 <center><h1>Mountaineer</h1>
 A high quality image compression utility<br/>
 for photographers and designers.<br/>
-<p><b>Version:</b> 1.2.1<br/></p>
+<p><b>Version:</b> {__version__}<br/></p>
 <p>©2025-2026 aries223</p></center>
 """
 
