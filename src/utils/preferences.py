@@ -86,8 +86,8 @@ class Preferences:
         'column_header_state': "AAAA/wAAAAAAAAABAAAAAQAAAAYBAAAAAAAAAAAAAAAAAAAAAAAAA1sAAAAGAAEBAQAAAAAAAAAAAAAAAGQAAAAoAAAAhAAAAAAAAAAGAAABVQAAAAEAAAAAAAAAVAAAAAEAAAAAAAAAgQAAAAEAAAAAAAAAQgAAAAEAAAAAAAAAggAAAAEAAAAAAAAAbQAAAAEAAAAAAAAD6AAAAABkAAAAAAAAAAAAAAAAAAAAAQ==",
 
         # Preferences dialog settings
-        'prefs_dialog_width': 510,
-        'prefs_dialog_height': 750,
+        'prefs_dialog_width': 1046,
+        'prefs_dialog_height': 650,
     }
 
     _COMPRESSION_RANGES: dict[str, tuple[int, int]] = {

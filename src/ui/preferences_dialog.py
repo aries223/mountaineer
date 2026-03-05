@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QLabel, QSlider, QCheckBox, QHBoxLayout,
     QStyle, QDialogButtonBox,
     QGroupBox, QSpinBox, QDoubleSpinBox, QComboBox, QRadioButton, QButtonGroup,
+    QTabWidget, QScrollArea, QWidget,
 )
 from PyQt6.QtCore import Qt
 
@@ -18,9 +19,7 @@ class PreferencesDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Preferences")
         self.setWindowModality(Qt.WindowModality.WindowModal)
-
-        layout = QVBoxLayout()
-        layout.setContentsMargins(36, 28, 36, 12)
+        self.setMinimumSize(640, 360)
 
         self.preferences = Preferences()
         # Fix 6: initialise with full defaults so any signal that fires
@@ -164,13 +163,11 @@ class PreferencesDialog(QDialog):
         png_group_layout.addLayout(png_layout)
         png_group_layout.addLayout(self.png_tick_layout)
 
-        layout.addLayout(jpeg_group_layout)
-        layout.addSpacing(16)
-
         # JPEG Options group
         jpeg_options_box = QGroupBox("JPEG Options")
         jpeg_opts_layout = QVBoxLayout()
         jpeg_opts_layout.setSpacing(6)
+        jpeg_opts_layout.setContentsMargins(14, 8, 8, 14)
         jpeg_options_box.setLayout(jpeg_opts_layout)
 
         # --- Row 1: Target Size ---
@@ -215,21 +212,16 @@ class PreferencesDialog(QDialog):
         jpeg_all_progressive_row.addStretch()
         jpeg_opts_layout.addLayout(jpeg_all_progressive_row)
 
-        layout.addWidget(jpeg_options_box)
-        layout.addSpacing(16)
-
         # Signal wiring for JPEG Options enable/disable
         self.jpeg_target_size_cb.toggled.connect(self._on_jpeg_target_size_toggled)
         self.jpeg_auto_progressive_cb.toggled.connect(self._on_jpeg_auto_progressive_toggled)
         self.jpeg_all_progressive_cb.toggled.connect(self._on_jpeg_all_progressive_toggled)
 
-        layout.addLayout(png_group_layout)
-        layout.addSpacing(16)
-
         # PNG Options group
         png_options_box = QGroupBox("PNG Options")
         png_opts_layout = QVBoxLayout()
         png_opts_layout.setSpacing(6)
+        png_opts_layout.setContentsMargins(14, 8, 8, 14)
         png_options_box.setLayout(png_opts_layout)
 
         # --- Row 1: Force 8-bit ---
@@ -269,9 +261,6 @@ class PreferencesDialog(QDialog):
         png_interlace_row.addWidget(self.png_interlace_combo)
         png_interlace_row.addStretch()
         png_opts_layout.addLayout(png_interlace_row)
-
-        layout.addWidget(png_options_box)
-        layout.addSpacing(16)
 
         # Signal wiring for PNG Options enable/disable
         self.png_interlace_cb.toggled.connect(self.png_interlace_combo.setEnabled)
@@ -352,15 +341,11 @@ class PreferencesDialog(QDialog):
         webp_group_layout.addLayout(webp_layout)
         webp_group_layout.addLayout(self.webp_tick_layout)
 
-        # WebP slider appears before GIF slider so the GIF Options group
-        # sits immediately below the GIF lossy slider.
-        layout.addLayout(webp_group_layout)
-        layout.addSpacing(16)
-
         # WebP Options group
         webp_options_box = QGroupBox("WebP Options")
         webp_opts_layout = QVBoxLayout()
         webp_opts_layout.setSpacing(6)
+        webp_opts_layout.setContentsMargins(14, 8, 8, 14)
         webp_options_box.setLayout(webp_opts_layout)
 
         # --- Row 1: Crop ---
@@ -485,22 +470,17 @@ class PreferencesDialog(QDialog):
         jpeg_like_row.addStretch()
         webp_opts_layout.addLayout(jpeg_like_row)
 
-        layout.addWidget(webp_options_box)
-        layout.addSpacing(16)
-
         # Signal wiring for WebP Options enable/disable
         self.webp_crop_cb.toggled.connect(self._on_webp_crop_toggled)
         self.webp_resize_cb.toggled.connect(self._on_webp_resize_toggled)
         self.webp_target_size_cb.toggled.connect(self._on_webp_target_size_toggled)
         self.webp_passes_cb.toggled.connect(self.webp_passes_spin.setEnabled)
 
-        layout.addLayout(gif_group_layout)
-        layout.addSpacing(16)
-
         # GIF Options group
         gif_options_box = QGroupBox("GIF Options")
         gif_opts_layout = QVBoxLayout()
         gif_opts_layout.setSpacing(6)
+        gif_opts_layout.setContentsMargins(14, 8, 8, 14)
         gif_options_box.setLayout(gif_opts_layout)
 
         # --- Row 1: Resize ---
@@ -659,8 +639,6 @@ class PreferencesDialog(QDialog):
         unoptimize_row.addStretch()
         gif_opts_layout.addLayout(unoptimize_row)
 
-        layout.addWidget(gif_options_box)
-
         # Signal wiring for GIF Options enable/disable
         self.gif_resize_cb.toggled.connect(self._on_gif_resize_toggled)
         self.gif_resize_radio.toggled.connect(self._on_gif_resize_mode_toggled)
@@ -708,10 +686,6 @@ class PreferencesDialog(QDialog):
             "Show a confirmation prompt before compressing files in place."
         )
 
-        layout.addWidget(self.lossless_checkbox)
-        layout.addWidget(self.strip_metadata_checkbox)
-        layout.addWidget(self.warn_overwrite_checkbox)
-
         # Fix 1: replace the standalone Save button with a standard Save/Cancel
         # button box so the dialog follows platform dialog conventions and the
         # user can dismiss without persisting changes.
@@ -719,9 +693,9 @@ class PreferencesDialog(QDialog):
             QDialogButtonBox.StandardButton.Save |
             QDialogButtonBox.StandardButton.Cancel
         )
+        button_box.setContentsMargins(0, 0, 12, 0)
         button_box.button(QDialogButtonBox.StandardButton.Save).clicked.connect(self.save_preferences)
         button_box.rejected.connect(self.reject)
-        layout.addWidget(button_box)
 
         # Give all format labels the same width so the slider tracks left-align.
         # This block must appear after all four labels are constructed.
@@ -738,7 +712,100 @@ class PreferencesDialog(QDialog):
         self.gif_label.setFixedWidth(self._label_width)
         self.webp_label.setFixedWidth(self._label_width)
 
-        self.setLayout(layout)
+        # ── Tab widget ──────────────────────────────────────────────────────────
+        tab_widget = QTabWidget()
+        tab_widget.setStyleSheet("QTabWidget::tab-bar { alignment: center; }")
+
+        # General tab
+        _general_inner = QWidget()
+        _general_layout = QVBoxLayout()
+        _general_layout.setContentsMargins(24, 50, 24, 20)
+        _general_layout.setSpacing(0)
+
+        general_options_box = QGroupBox("General Options")
+        general_opts_layout = QVBoxLayout()
+        general_opts_layout.setSpacing(6)
+        general_opts_layout.setContentsMargins(14, 8, 8, 14)
+        general_opts_layout.addWidget(self.lossless_checkbox)
+        general_opts_layout.addWidget(self.strip_metadata_checkbox)
+        general_opts_layout.addWidget(self.warn_overwrite_checkbox)
+        general_options_box.setLayout(general_opts_layout)
+
+        _general_layout.addWidget(general_options_box)
+        _general_layout.addStretch()
+        _general_inner.setLayout(_general_layout)
+        _general_scroll = QScrollArea()
+        _general_scroll.setWidgetResizable(True)
+        _general_scroll.setWidget(_general_inner)
+        tab_widget.addTab(_general_scroll, "General")
+
+        # JPEG tab
+        _jpeg_inner = QWidget()
+        _jpeg_tab_layout = QVBoxLayout()
+        _jpeg_tab_layout.setContentsMargins(24, 50, 24, 20)
+        _jpeg_tab_layout.setSpacing(0)
+        _jpeg_tab_layout.addLayout(jpeg_group_layout)
+        _jpeg_tab_layout.addSpacing(28)
+        _jpeg_tab_layout.addWidget(jpeg_options_box)
+        _jpeg_tab_layout.addStretch()
+        _jpeg_inner.setLayout(_jpeg_tab_layout)
+        _jpeg_scroll = QScrollArea()
+        _jpeg_scroll.setWidgetResizable(True)
+        _jpeg_scroll.setWidget(_jpeg_inner)
+        tab_widget.addTab(_jpeg_scroll, "JPEG")
+
+        # PNG tab
+        _png_inner = QWidget()
+        _png_tab_layout = QVBoxLayout()
+        _png_tab_layout.setContentsMargins(24, 50, 24, 20)
+        _png_tab_layout.setSpacing(0)
+        _png_tab_layout.addLayout(png_group_layout)
+        _png_tab_layout.addSpacing(28)
+        _png_tab_layout.addWidget(png_options_box)
+        _png_tab_layout.addStretch()
+        _png_inner.setLayout(_png_tab_layout)
+        _png_scroll = QScrollArea()
+        _png_scroll.setWidgetResizable(True)
+        _png_scroll.setWidget(_png_inner)
+        tab_widget.addTab(_png_scroll, "PNG")
+
+        # WebP tab
+        _webp_inner = QWidget()
+        _webp_tab_layout = QVBoxLayout()
+        _webp_tab_layout.setContentsMargins(24, 50, 24, 20)
+        _webp_tab_layout.setSpacing(0)
+        _webp_tab_layout.addLayout(webp_group_layout)
+        _webp_tab_layout.addSpacing(28)
+        _webp_tab_layout.addWidget(webp_options_box)
+        _webp_tab_layout.addStretch()
+        _webp_inner.setLayout(_webp_tab_layout)
+        _webp_scroll = QScrollArea()
+        _webp_scroll.setWidgetResizable(True)
+        _webp_scroll.setWidget(_webp_inner)
+        tab_widget.addTab(_webp_scroll, "WebP")
+
+        # GIF tab
+        _gif_inner = QWidget()
+        _gif_tab_layout = QVBoxLayout()
+        _gif_tab_layout.setContentsMargins(24, 50, 24, 20)
+        _gif_tab_layout.setSpacing(0)
+        _gif_tab_layout.addLayout(gif_group_layout)
+        _gif_tab_layout.addSpacing(28)
+        _gif_tab_layout.addWidget(gif_options_box)
+        _gif_tab_layout.addStretch()
+        _gif_inner.setLayout(_gif_tab_layout)
+        _gif_scroll = QScrollArea()
+        _gif_scroll.setWidgetResizable(True)
+        _gif_scroll.setWidget(_gif_inner)
+        tab_widget.addTab(_gif_scroll, "GIF")
+
+        # ── Main layout ──────────────────────────────────────────────────────────
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(0, 10, 0, 8)
+        main_layout.addWidget(tab_widget)
+        main_layout.addWidget(button_box)
+
+        self.setLayout(main_layout)
         self._apply_tick_margins()
 
         # Connect slider value-change signals AFTER the widgets exist.
@@ -754,6 +821,9 @@ class PreferencesDialog(QDialog):
         # wired.  Doing this here means callers do not need a separate
         # load_preferences() call after construction.
         self._set_initial_values()
+
+        settings = self.preferences.get_prefs_dialog_settings()
+        self.resize(settings['width'], settings['height'])
 
     # ------------------------------------------------------------------
     # Fix 5: tick-margin helper and showEvent override
