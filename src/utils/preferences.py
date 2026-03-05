@@ -21,6 +21,10 @@ _RESIZE_MODES = frozenset({'resize', 'scale'})
 
 
 class Preferences:
+    # Informational — mirrors the highest N used in _migrate_preferences().
+    # Bump this whenever a new migration block is added.
+    _CURRENT_SCHEMA_VERSION = 1
+
     DEFAULT_PREFERENCES = {
         'jpeg_compression_level': 90,
         'jpeg_target_size_enabled': False,
@@ -88,6 +92,7 @@ class Preferences:
         # Preferences dialog settings
         'prefs_dialog_width': 1046,
         'prefs_dialog_height': 650,
+        'prefs_schema_version': 1,
     }
 
     _COMPRESSION_RANGES: dict[str, tuple[int, int]] = {
@@ -152,7 +157,19 @@ class Preferences:
         try:
             with open(self.pref_file, 'r') as f:
                 loaded = json.load(f)
-                return self._validate_preferences(loaded)
+                # Read the raw schema version BEFORE _validate_preferences fills
+                # in the DEFAULT_PREFERENCES default (1).  A missing key must be
+                # treated as version 0 so the migration runs on first launch of
+                # a version that introduced a new schema.
+                try:
+                    raw_schema_version = int(loaded.get('prefs_schema_version', 0))
+                except (TypeError, ValueError):
+                    raw_schema_version = 0
+                validated = self._validate_preferences(loaded)
+                migrated, changed = self._migrate_preferences(validated, raw_schema_version)
+                if changed:
+                    self.save_preferences(migrated)
+                return migrated
         except Exception as e:
             logger.warning("Error loading preferences: %s", e)
             return self.DEFAULT_PREFERENCES.copy()
@@ -266,6 +283,47 @@ class Preferences:
 
             validated[k] = result
         return validated
+
+    def _migrate_preferences(self, prefs: dict, raw_version: int) -> tuple[dict, bool]:
+        """Apply any pending schema migrations to a validated preferences dict.
+
+        Each migration block is guarded by ``raw_version < N`` so it runs
+        exactly once — on the first launch after an upgrade that bumped the
+        schema version.  To add a future migration: copy the template block,
+        increment N, and update ``_CURRENT_SCHEMA_VERSION``.
+
+        Args:
+            prefs:       Fully validated preferences dict from
+                         ``_validate_preferences()``.
+            raw_version: The ``prefs_schema_version`` value read directly from
+                         the JSON file before validation.  A missing key is
+                         passed in as ``0`` by the caller so that existing
+                         installs without the key are always migrated.
+
+        Returns:
+            ``(migrated_prefs, was_changed)`` — ``was_changed`` is ``True`` if
+            any migration ran; the caller should persist the dict in that case.
+        """
+        changed = False
+
+        if raw_version < 1:
+            # v1.4.0: Preferences dialog default size changed to 1046×650.
+            # Reset the saved dialog dimensions so the new default takes effect.
+            prefs['prefs_dialog_width'] = self.DEFAULT_PREFERENCES['prefs_dialog_width']
+            prefs['prefs_dialog_height'] = self.DEFAULT_PREFERENCES['prefs_dialog_height']
+            prefs['prefs_schema_version'] = 1
+            logger.info("Preferences migrated to schema version 1")
+            changed = True
+
+        # Template for future migrations — copy this block, increment N, and
+        # update _CURRENT_SCHEMA_VERSION at the top of the class:
+        # if raw_version < 2:
+        #     prefs['some_key'] = self.DEFAULT_PREFERENCES['some_key']
+        #     prefs['prefs_schema_version'] = 2
+        #     logger.info("Preferences migrated to schema version 2")
+        #     changed = True
+
+        return prefs, changed
 
     def save_preferences(self, preferences: dict) -> None:
         """Write the complete preferences dict to disk in-place via O_TRUNC.
