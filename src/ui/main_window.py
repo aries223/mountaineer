@@ -136,18 +136,14 @@ class MainWindow(QMainWindow):
         self.file_list_widget.setSortingEnabled(True)
 
         header = self.file_list_widget.horizontalHeader()
-        # setStretchLastSection(True) pins the right edge of the Saved column to
-        # the right edge of the table viewport so the header row always spans the
-        # full table width.  Leaving it at the Qt default of True would also work
-        # here, but the explicit call documents the intent and prevents a future
-        # maintainer from accidentally setting it to False, which would leave a
-        # blank gap on the right.
-        header.setStretchLastSection(True)
+        header.setStretchLastSection(False)
         # Global safety-net minimum; per-column minimums are enforced in
         # _on_column_resized based on the header label text width.
         header.setMinimumSectionSize(40)
         for i in range(self.file_list_widget.columnCount()):
             header.setSectionResizeMode(i, QHeaderView.ResizeMode.Interactive)
+        # File Name (col 0) absorbs extra horizontal space when the window is resized.
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
 
         # Compute per-column minimum widths from the header font metrics so that
         # no column can ever be dragged narrower than its own label text.
@@ -159,15 +155,13 @@ class MainWindow(QMainWindow):
             for label in _header_labels
         ]
 
-        # Initial widths for columns 0–4; column 5 (Saved) auto-fills the rest
-        # via setStretchLastSection.  File Name is given the most space to
-        # comfortably display long filenames.
-        header.resizeSection(0, 260)  # File Name
+        # Column 0 (File Name) is in Stretch mode and auto-fills the rest.
+        # All other columns get explicit initial widths.
         header.resizeSection(1, 65)   # Format
         header.resizeSection(2, 100)  # Dimensions
         header.resizeSection(3, 60)   # Size
         header.resizeSection(4, 92)   # Compressed
-        # Column 5 (Saved) is not assigned here; setStretchLastSection handles it.
+        header.resizeSection(5, 80)   # Saved
 
         # Reentrancy guard for _on_column_resized.  Also held True during
         # restoreState() to suppress the flood of sectionResized signals Qt
@@ -189,11 +183,12 @@ class MainWindow(QMainWindow):
             # leave the header in an unexpected state.
             for i in range(self.file_list_widget.columnCount()):
                 header.setSectionResizeMode(i, QHeaderView.ResizeMode.Interactive)
-            header.setStretchLastSection(True)
+            header.setStretchLastSection(False)
+            header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
 
             # Clamp any restored width that is below its per-column minimum
             # (handles a hand-edited or version-mismatched prefs file).
-            for i in range(self.file_list_widget.columnCount() - 1):  # exclude stretch col
+            for i in range(1, self.file_list_widget.columnCount()):  # exclude stretch col (File Name, col 0)
                 current = header.sectionSize(i)
                 if current < self._column_min_widths[i]:
                     header.resizeSection(i, self._column_min_widths[i])
