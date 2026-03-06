@@ -193,11 +193,14 @@ class MainWindow(QMainWindow):
                 if current < self._column_min_widths[i]:
                     header.resizeSection(i, self._column_min_widths[i])
 
-        self.file_list_widget.setAcceptDrops(True)
-        self.file_list_widget.viewport().setAcceptDrops(True)
-        # DropOnly prevents the table's built-in InternalMove drag mode from
-        # conflicting with the window-level dropEvent handler.
-        self.file_list_widget.setDragDropMode(QTableWidget.DragDropMode.DropOnly)
+        # Register the main window as the drop target so that drag-and-drop works
+        # on both X11 and Wayland.  On Wayland, Qt registers drop targets per-widget,
+        # so only the widget with setAcceptDrops(True) receives drops.  Setting it on
+        # the child table widget would cause Qt's built-in QAbstractItemView::dropEvent
+        # to consume the event before our handler fires.  Setting it exclusively on the
+        # top-level window ensures all drops — regardless of where the cursor lands —
+        # are routed to MainWindow.dragEnterEvent / MainWindow.dropEvent.
+        self.setAcceptDrops(True)
 
         self.file_list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.file_list_widget.customContextMenuRequested.connect(self.show_context_menu)
