@@ -7,7 +7,7 @@ Next release: **v1.5.0**
 
 ## Unreleased
 
-- [ ] **Auto Progressive compatibility check** — detect jpegoptim version at startup and disable the Auto Progressive option if the version is below 1.5.0 (flag unavailable on Debian 12 / Ubuntu 22.04 LTS)
+- [ ] **Auto Progressive compatibility check** — detect jpegoptim version at startup and disable the Auto Progressive option if the version is below 1.5.0 
 
 ---
 
