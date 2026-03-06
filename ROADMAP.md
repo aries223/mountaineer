@@ -7,8 +7,6 @@ Next release: **v1.5.0**
 
 ## Unreleased
 
-- [ ] **Auto Progressive compatibility check** — detect jpegoptim version at startup and disable the Auto Progressive option if the version is below 1.5.0 
-
 ---
 
 ## v1.4.0 — Released
@@ -18,6 +16,7 @@ Next release: **v1.5.0**
 - [x] **Redesign Preferences dialog** — replaced single tall vertical layout with a horizontal tabbed layout (General, JPEG, PNG, WebP, GIF tabs)
 - [x] **File Name column now expands on window resize** instead of the Saved column
 - [x] **Preferences schema version migration** — resets dialog size to new default on upgrade
+- [x] **Auto Progressive compatibility check** — detect jpegoptim version at startup and disable the Auto Progressive option if the version is below 1.5.0
 
 ### Packaging
 
