@@ -2,7 +2,9 @@
 # Copyright © 2026 Aries223 (https://github.com/aries223)
 import logging
 import os
+import re
 import shutil
+import subprocess
 import threading
 import time
 
@@ -34,6 +36,22 @@ _REQUIRED_TOOLS = ("jpegoptim", "oxipng", "gifsicle", "cwebp")
 # Foreground colour applied to "Saved" cells when compression increased file
 # size. Slightly lighter than pure red so it remains readable on dark themes.
 _NEGATIVE_SAVINGS_COLOR = QColor(220, 50, 50)
+
+
+def _get_jpegoptim_version() -> tuple[int, int] | None:
+    """Return (major, minor) from ``jpegoptim --version``, or None on failure."""
+    try:
+        result = subprocess.run(
+            ["jpegoptim", "--version"], capture_output=True, text=True, timeout=5
+        )
+        m = re.search(r'jpegoptim\s+v?(\d+)\.(\d+)', result.stdout + result.stderr)
+        if m:
+            return int(m.group(1)), int(m.group(2))
+    except subprocess.TimeoutExpired:
+        logger.warning("jpegoptim --version timed out; version check skipped")
+    except Exception:
+        logger.warning("Could not determine jpegoptim version", exc_info=True)
+    return None
 
 
 class MainWindow(QMainWindow):
@@ -273,6 +291,7 @@ class MainWindow(QMainWindow):
             self._update_remove_menu_text
         )
 
+        self._jpegoptim_auto_progressive_ok = True  # refined by _check_tool_availability
         # Defer the tool-availability check until after the window has been
         # shown so that the QMessageBox has a fully visible parent behind it.
         QTimer.singleShot(0, self._check_tool_availability)
@@ -298,6 +317,18 @@ class MainWindow(QMainWindow):
                 f"Install them before compressing:\n{install_hints}",
             )
             self.compress_button.setEnabled(False)
+
+        if "jpegoptim" not in missing:
+            threading.Thread(target=self._check_jpegoptim_version, daemon=True).start()
+
+    def _check_jpegoptim_version(self):
+        """Background probe: disable Auto Progressive if jpegoptim < 1.5.0."""
+        version = _get_jpegoptim_version()
+        if version is None or version < (1, 5):
+            self._jpegoptim_auto_progressive_ok = False
+            logger.info(
+                "jpegoptim < 1.5.0 detected; Auto Progressive option will be disabled"
+            )
 
     def _set_compression_running(self, running):
         """Enable or disable controls that must not be used during compression."""
@@ -645,7 +676,7 @@ class MainWindow(QMainWindow):
     def show_preferences(self):
         """Show the Preferences dialog."""
         from ui.preferences_dialog import PreferencesDialog
-        dialog = PreferencesDialog(self)
+        dialog = PreferencesDialog(self, jpegoptim_auto_progressive_available=self._jpegoptim_auto_progressive_ok)
 
         window_settings = self.preferences.get_prefs_dialog_settings()
         dialog.resize(window_settings['width'], window_settings['height'])
@@ -717,7 +748,7 @@ class MainWindow(QMainWindow):
 
         compression_thread = threading.Thread(
             target=self._run_compression,
-            args=(snapshot, total_files),
+            args=(snapshot, total_files, self._jpegoptim_auto_progressive_ok),
             daemon=True,
         )
         compression_thread.start()
@@ -745,6 +776,8 @@ class MainWindow(QMainWindow):
         file_path: str,
         format_str: str,
         prefs: dict,
+        *,
+        auto_progressive_capable: bool = True,
     ) -> tuple:
         """Instantiate the correct compressor and run it for *file_path*.
 
@@ -773,7 +806,7 @@ class MainWindow(QMainWindow):
                 target_size_enabled = prefs.get('jpeg_target_size_enabled', False),
                 target_size_value   = prefs.get('jpeg_target_size_value', 500),
                 target_size_unit    = prefs.get('jpeg_target_size_unit', 'KB'),
-                auto_progressive    = prefs.get('jpeg_auto_progressive', False),
+                auto_progressive    = prefs.get('jpeg_auto_progressive', False) and auto_progressive_capable,
                 all_progressive     = prefs.get('jpeg_all_progressive', False),
             )
             success = compressor.compress_file(
@@ -940,7 +973,7 @@ class MainWindow(QMainWindow):
             signals.status_updated.emit(f"Failed: {filename} \u2014 {error_msg}")
             return False
 
-    def _run_compression(self, snapshot: list, total_files: int) -> None:
+    def _run_compression(self, snapshot: list, total_files: int, auto_progressive_ok: bool = True) -> None:
         """Compress files in a worker thread.
 
         Reads exclusively from the pre-built snapshot — never from live UI
@@ -972,7 +1005,8 @@ class MainWindow(QMainWindow):
                 else:
                     format_str = get_file_format(file_path)
                     compressor, success = self._compress_file_by_format(
-                        file_path, format_str, prefs
+                        file_path, format_str, prefs,
+                        auto_progressive_capable=auto_progressive_ok,
                     )
 
                     if compressor is None:

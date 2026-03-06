@@ -15,8 +15,9 @@ class PreferencesDialog(QDialog):
     _SLIDER_H_PADDING = 14   # px of breathing room on each side of every slider track
     _VALUE_LABEL_EXTRA = 4   # extra px beyond the widest digit string for the value label
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, *, jpegoptim_auto_progressive_available: bool = True):
         super().__init__(parent)
+        self._jpegoptim_auto_progressive_available = jpegoptim_auto_progressive_available
         self.setWindowTitle("Preferences")
         self.setWindowModality(Qt.WindowModality.WindowModal)
         self.setMinimumSize(640, 360)
@@ -215,6 +216,12 @@ class PreferencesDialog(QDialog):
         # Signal wiring for JPEG Options enable/disable
         self.jpeg_target_size_cb.toggled.connect(self._on_jpeg_target_size_toggled)
         self.jpeg_auto_progressive_cb.toggled.connect(self._on_jpeg_auto_progressive_toggled)
+        if not self._jpegoptim_auto_progressive_available:
+            self.jpeg_auto_progressive_cb.setChecked(False)
+            self.jpeg_auto_progressive_cb.setEnabled(False)
+            self.jpeg_auto_progressive_cb.setToolTip(
+                "Requires jpegoptim \u2265 1.5.0. The version installed on this system does not support this option."
+            )
         self.jpeg_all_progressive_cb.toggled.connect(self._on_jpeg_all_progressive_toggled)
 
         # PNG Options group
@@ -927,7 +934,8 @@ class PreferencesDialog(QDialog):
         # Restore enabled states for JPEG Options via the same handlers that
         # are wired to the checkboxes, so the logic stays in one place.
         self._on_jpeg_target_size_toggled(jpeg_target_size_enabled)
-        self._on_jpeg_auto_progressive_toggled(jpeg_auto_progressive)
+        if self._jpegoptim_auto_progressive_available:
+            self._on_jpeg_auto_progressive_toggled(jpeg_auto_progressive)
         self._on_jpeg_all_progressive_toggled(jpeg_all_progressive)
 
         png_level = max(0, min(6, png_level))
@@ -1377,7 +1385,7 @@ class PreferencesDialog(QDialog):
 
     def _on_jpeg_all_progressive_toggled(self, checked: bool) -> None:
         """Uncheck Auto Progressive Mode when Progressive is checked (mutually exclusive)."""
-        if checked:
+        if checked and self._jpegoptim_auto_progressive_available:
             self.jpeg_auto_progressive_cb.blockSignals(True)
             self.jpeg_auto_progressive_cb.setChecked(False)
             self.jpeg_auto_progressive_cb.blockSignals(False)
